@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
-import "./globals.css";
+import { Inter, Space_Grotesk } from "next/font/google";
+import "./main.css";
 
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -23,9 +25,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="light" suppressHydrationWarning>
       <body
-        className={`${jakarta.variable} ${spaceGrotesk.variable} font-sans antialiased bg-background text-foreground selection:bg-primary selection:text-white`}
+        className={`${inter.variable} ${spaceGrotesk.variable} font-sans antialiased bg-background text-foreground selection:bg-primary selection:text-white`}
       >
         {children}
       </body>

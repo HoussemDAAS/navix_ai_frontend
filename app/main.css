@@ -1,0 +1,335 @@
+@import "tailwindcss";
+
+/* Dark mode disabled light only for MVP */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Navix Design System Figma source of truth
+   File: alN6EZjApBjniPglloh7HK
+   Font: Inter (400/500/600/700/800)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@theme {
+  --font-sans: var(--font-inter), "Inter", sans-serif;
+  --font-heading: var(--font-space-grotesk), "Space Grotesk", sans-serif;
+
+  /* Semantic color tokens */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+
+  /* ── Alpha-black (opacity of #2F2B43) ── */
+  --color-alpha-5:  rgba(47, 43, 67, 0.05);
+  --color-alpha-10: rgba(47, 43, 67, 0.1);
+  --color-alpha-20: rgba(47, 43, 67, 0.2);
+  --color-alpha-30: rgba(47, 43, 67, 0.3);
+  --color-alpha-40: rgba(47, 43, 67, 0.4);
+  --color-alpha-50: rgba(47, 43, 67, 0.5);
+  --color-alpha-60: rgba(47, 43, 67, 0.6);
+  --color-alpha-70: rgba(47, 43, 67, 0.7);
+  --color-alpha-80: rgba(47, 43, 67, 0.8);
+  --color-alpha-90: rgba(47, 43, 67, 0.9);
+
+  /* ── Alpha-white (opacity of #FFFFFF) ── */
+  --color-alpha-white-5:  rgba(255, 255, 255, 0.05);
+  --color-alpha-white-10: rgba(255, 255, 255, 0.1);
+  --color-alpha-white-20: rgba(255, 255, 255, 0.2);
+  --color-alpha-white-30: rgba(255, 255, 255, 0.3);
+  --color-alpha-white-40: rgba(255, 255, 255, 0.4);
+  --color-alpha-white-50: rgba(255, 255, 255, 0.5);
+  --color-alpha-white-60: rgba(255, 255, 255, 0.6);
+  --color-alpha-white-70: rgba(255, 255, 255, 0.7);
+  --color-alpha-white-80: rgba(255, 255, 255, 0.8);
+  --color-alpha-white-90: rgba(255, 255, 255, 0.9);
+
+  /* ── Primary scale (blue → navy) ── */
+  --color-primary-50:  #F0F7FB;
+  --color-primary-100: #D5E7F6;
+  --color-primary-200: #ADCBE8;
+  --color-primary-300: #77A7D7;
+  --color-primary-400: #4581C4;
+  --color-primary-500: #2661A3;
+  --color-primary-600: #1C4B82;
+  --color-primary-700: #143763;
+  --color-primary-800: #0D2545;
+  --color-primary-900: #2F2B43;
+  --color-primary-btn: #071529;
+
+  /* ── Secondary scale (lime/green) ── */
+  --color-secondary-50:  #F7FEE7;
+  --color-secondary-100: #ECFCCB;
+  --color-secondary-200: #D9F99D;
+  --color-secondary-300: #BEF264;
+  --color-secondary-400: #A3E635;
+  --color-secondary-500: #84CC16;
+  --color-secondary-600: #65A30D;
+  --color-secondary-700: #4D7C0F;
+  --color-secondary-800: #3F6212;
+  --color-secondary-900: #365314;
+
+  /* ── Info scale (blue) ── */
+  --color-info-50:  #F4F7FE;
+  --color-info-100: #E9EFFD;
+  --color-info-200: #C8D8FA;
+  --color-info-300: #92B1F5;
+  --color-info-400: #5C8AF0;
+  --color-info-500: #2563EB;
+  --color-info-600: #1F54C8;
+  --color-info-700: #1943A0;
+  --color-info-800: #10327E;
+  --color-info-900: #0B265F;
+
+  /* ── Success scale (green) ── */
+  --color-success-50:  #EFFDF6;
+  --color-success-100: #D9F9E6;
+  --color-success-200: #B8F1D2;
+  --color-success-300: #8EE4BA;
+  --color-success-400: #6AD09D;
+  --color-success-500: #53B483;
+  --color-success-600: #2F9461;
+  --color-success-700: #2F7657;
+  --color-success-800: #255E46;
+  --color-success-900: #1E4D3A;
+
+  /* ── Destructive scale (red) ── */
+  --color-destructive-50:  #FEF2F2;
+  --color-destructive-100: #FDE9E9;
+  --color-destructive-200: #FAC7C7;
+  --color-destructive-300: #F7A1A1;
+  --color-destructive-400: #F37373;
+  --color-destructive-500: #F34141;
+  --color-destructive-600: #CD3636;
+  --color-destructive-700: #A32E2E;
+  --color-destructive-800: #7C2323;
+  --color-destructive-900: #601B1B;
+
+  /* ── Warning scale (gold/amber) ── */
+  --color-warning-50:  #FEFAF5;
+  --color-warning-100: #FBF2CB;
+  --color-warning-200: #FDE57E;
+  --color-warning-300: #FFD16A;
+  --color-warning-400: #FBBC55;
+  --color-warning-500: #E9A23B;
+  --color-warning-600: #C8811A;
+  --color-warning-700: #A35C00;
+  --color-warning-800: #8B4400;
+  --color-warning-900: #78310B;
+
+  /* ── Typography scale from Figma node 5-85 ──
+     Font: Inter all sizes use negative letter-spacing
+     Usage: class="text-display" or class="text-h1" etc.
+     ─────────────────────────────────────────────────── */
+  --font-size-display:     96px;
+  --font-size-h1:          72px;
+  --font-size-h2:          64px;
+  --font-size-h3:          48px;
+  --font-size-h4:          36px;
+  --font-size-h5:          30px;
+  --font-size-h6:          24px;
+  --font-size-subheadline: 20px;
+  --font-size-body-1:      18px;
+  --font-size-body-2:      16px;
+  --font-size-caption-1:   14px;
+  --font-size-caption-2:   12px;
+
+  --line-height-display:     100px;
+  --line-height-h1:          78px;
+  --line-height-h2:          68px;
+  --line-height-h3:          54px;
+  --line-height-h4:          42px;
+  --line-height-h5:          36px;
+  --line-height-h6:          32px;
+  --line-height-subheadline: 28px;
+  --line-height-body-1:      26px;
+  --line-height-body-2:      24px;
+  --line-height-caption-1:   20px;
+  --line-height-caption-2:   16px;
+
+  --tracking-display:     -1.92px;
+  --tracking-h1:          -1.44px;
+  --tracking-h2:          -1.28px;
+  --tracking-h3:          -0.96px;
+  --tracking-h4:          -0.648px;
+  --tracking-h5:          -0.54px;
+  --tracking-h6:          -0.384px;
+  --tracking-subheadline: -0.28px;
+  --tracking-body-1:      -0.216px;
+  --tracking-body-2:      -0.16px;
+  --tracking-caption-1:   -0.14px;
+  --tracking-caption-2:   -0.12px;
+
+  /* Shadows from Figma */
+  --shadow-card: 0px 1px 3px 0px rgba(47, 43, 67, 0.1), inset 0px -1px 0px 0px rgba(47, 43, 67, 0.1);
+  --shadow-sm: 0px 1px 2px -1px rgba(0, 0, 0, 0.08), 0px 1px 3px 0px rgba(0, 0, 0, 0.08);
+  --shadow-dropdown: 0px 4px 8px 0px rgba(47, 43, 67, 0.1), inset 0px -1px 0px 0px rgba(47, 43, 67, 0.1);
+
+  /* Landing page specific from Figma */
+  --color-dark: #191A23;
+  --color-dark-card: #292A32;
+  --color-green: #B9FF66;
+
+  /* Gradients from Figma */
+  --gradient-pricing: radial-gradient(ellipse at 50% 0%, rgba(212,255,124,1) 5.6%, rgba(204,236,187,1) 34.1%, rgba(196,217,250,1) 62.7%, rgba(255,255,255,1) 100%);
+  --gradient-pricing-highlighted: radial-gradient(ellipse at 50% 0%, rgba(212,255,124,0.3) 5.6%, rgba(204,236,187,0.15) 34.1%, rgba(47,43,67,1) 100%);
+
+  --animate-fade-in: fade-in 0.5s ease-out forwards;
+  --animate-slide-up: slide-up 0.5s ease-out forwards;
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slide-up {
+    from { transform: translateY(10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+}
+
+@layer base {
+  :root {
+    /* ── Core palette from Figma node 5-12143 ── */
+    --background: #ffffff;
+    --foreground: #2f2b43;
+
+    --card: #ffffff;
+    --card-foreground: #2f2b43;
+
+    --popover: #ffffff;
+    --popover-foreground: #2f2b43;
+
+    --primary: #2f2b43;
+    --primary-foreground: #ffffff;
+
+    --secondary: rgba(47, 43, 67, 0.1);
+    --secondary-foreground: #2f2b43;
+
+    --accent: #c8f135;
+    --accent-foreground: #2f2b43;
+
+    --muted: #ededf1;
+    --muted-foreground: rgba(47, 43, 67, 0.6);
+
+    --destructive: #f34141;
+    --destructive-foreground: #ffffff;
+
+    --success: #53b483;
+    --warning: #f59e0b;
+    --info: #2563eb;
+
+    --border: rgba(47, 43, 67, 0.1);
+    --input: rgba(47, 43, 67, 0.1);
+    --ring: rgba(132, 66, 211, 0.48);
+
+    --radius: 12px;
+
+    /* ── Section header gradient from Figma ── */
+    --gradient-header: radial-gradient(
+      ellipse at center top,
+      rgba(229, 220, 255, 1) 0%,
+      rgba(250, 255, 218, 1) 61.8%,
+      rgba(255, 255, 255, 1) 100%
+    );
+  }
+
+  /* Dark mode disabled light only for MVP */
+}
+
+@layer base {
+  html, body {
+    color-scheme: light only;
+  }
+
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-feature-settings: "rlig" 1, "calt" 1;
+    /* Default body text = Body 2 / 400 */
+    font-size: 16px;
+    line-height: 24px;
+    letter-spacing: -0.16px;
+  }
+
+  /* ── Gradient utility classes from Figma ── */
+  .bg-gradient-pricing {
+    background-image: radial-gradient(ellipse at 50% 0%, rgba(212,255,124,1) 5.6%, rgba(204,236,187,1) 34.1%, rgba(196,217,250,1) 62.7%, rgba(255,255,255,1) 100%);
+  }
+  .bg-gradient-pricing-highlighted {
+    background: radial-gradient(ellipse at 50% 0%, rgba(212,255,124,0.25) 0%, rgba(196,217,250,0.15) 40%, #071529 100%);
+  }
+  .bg-gradient-header {
+    background-image: radial-gradient(ellipse at center top, rgba(229,220,255,1) 0%, rgba(250,255,218,1) 61.8%, rgba(255,255,255,1) 100%);
+  }
+
+  /* ── Figma Typography utility classes ── */
+  .text-display     { font-size: 96px; line-height: 100px; letter-spacing: -1.92px; }
+  .text-h1          { font-size: 72px; line-height: 78px;  letter-spacing: -1.44px; }
+  .text-h2          { font-size: 64px; line-height: 68px;  letter-spacing: -1.28px; }
+  .text-h3          { font-size: 48px; line-height: 54px;  letter-spacing: -0.96px; }
+  .text-h4          { font-size: 36px; line-height: 42px;  letter-spacing: -0.648px; }
+  .text-h5          { font-size: 30px; line-height: 36px;  letter-spacing: -0.54px; }
+  .text-h6          { font-size: 24px; line-height: 32px;  letter-spacing: -0.384px; }
+  .text-subheadline { font-size: 20px; line-height: 28px;  letter-spacing: -0.28px; }
+  .text-body-1      { font-size: 18px; line-height: 26px;  letter-spacing: -0.216px; }
+  .text-body-2      { font-size: 16px; line-height: 24px;  letter-spacing: -0.16px; }
+  .text-caption-1   { font-size: 14px; line-height: 20px;  letter-spacing: -0.14px; }
+  .text-caption-2   { font-size: 12px; line-height: 16px;  letter-spacing: -0.12px; }
+
+  /* Heading defaults all headings get proper Figma sizing + tight tracking */
+  h1 { font-size: 72px; line-height: 78px; letter-spacing: -1.44px; font-weight: 700; }
+  h2 { font-size: 64px; line-height: 68px; letter-spacing: -1.28px; font-weight: 700; }
+  h3 { font-size: 48px; line-height: 54px; letter-spacing: -0.96px; font-weight: 600; }
+  h4 { font-size: 36px; line-height: 42px; letter-spacing: -0.648px; font-weight: 600; }
+  h5 { font-size: 30px; line-height: 36px; letter-spacing: -0.54px; font-weight: 500; }
+  h6 { font-size: 24px; line-height: 32px; letter-spacing: -0.384px; font-weight: 500; }
+  p  { font-size: 16px; line-height: 24px; letter-spacing: -0.16px; }
+  small { font-size: 12px; line-height: 16px; letter-spacing: -0.12px; }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
