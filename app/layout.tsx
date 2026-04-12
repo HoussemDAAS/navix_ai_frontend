@@ -17,6 +17,10 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "Navix AI",
   description: "Market and competitor intelligence copilot for social media",
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/logo_navix_ico.png",
+  },
 };
 
 export default function RootLayout({

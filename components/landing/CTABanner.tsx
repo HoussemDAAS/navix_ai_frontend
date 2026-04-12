@@ -74,7 +74,7 @@ export function CTABanner({ className }: { className?: string }) {
 
           <Link
             href="/signup"
-            className="group mt-4 inline-flex items-center justify-center rounded-[12px] bg-primary-btn px-5 py-3.5 text-body-2 font-medium text-white shadow-card transition-all duration-200 hover:bg-primary-700 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+            className="group mt-4 inline-flex items-center justify-center rounded-[12px] bg-secondary-300 px-5 py-3.5 text-body-2 font-medium text-primary-900 border border-primary-900 shadow-signature transition-all duration-200 hover:bg-secondary-400 hover:shadow-[0px_3px_0px_0px_#191a23] active:shadow-none active:translate-y-[2px]"
           >
             Sign Up for Free Trial
           </Link>

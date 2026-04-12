@@ -370,13 +370,14 @@ NEXT_PUBLIC_API_URL=http://localhost:3001/api
 ```
 
 ### Auth
-- JWT in `httpOnly` cookie (set by backend)
+- Supabase Auth (not custom JWT) — session managed via cookies
 - On `401` → redirect to `/login`
-- `lib/api.ts` Axios instance handles refresh via interceptor
+- `lib/api.ts` sends Bearer token from Supabase session
 
 ### Endpoints
 ```
-POST  /auth/register | /auth/login | /auth/refresh
+GET   /profiles/me                           → current user profile
+PATCH /profiles/me                           → update profile (onboarding data)
 
 GET   /projects                              → list
 POST  /projects                              → create
@@ -420,10 +421,25 @@ GET   /jobs/:jobId/status                    → { status, progress, result?, er
 ## 🔄 User Flow
 
 ```
-Register → Onboarding (Brand Kit) → Dashboard
+Signup → Onboarding → Competitor Discovery → Dashboard
 Dashboard → New Project → Project Overview
 Project steps: Brand Kit → Competitors → Analysis → Directions → Drafts → Calendar
 ```
+
+### Onboarding (one-time, enforced by middleware)
+- `profiles` table in Supabase stores user data (persona, handles, scraped profile)
+- Auto-created on signup via DB trigger
+- `onboarding_completed` flag prevents re-showing onboarding
+- Middleware checks this flag: if false → force `/onboarding`, if true → block `/onboarding`
+- Three personas: `creator` (streamlined flow with profile scraping), `ecommerce`, `agency`
+- Creator flow: select platforms → enter handles → pick niche/country → confirm scraped profile → discover competitors
+- Ecommerce/Agency flow: enter brand info → pick niche/country → discover competitors
+- Profile data saved via `PATCH /profiles/me` before discovery polling starts (avoids race condition)
+
+### Image proxy
+- Instagram/TikTok block direct image hotlinking
+- All external avatar images go through `/api/image-proxy?url=...` (Next.js API route)
+- Used in: onboarding profile card, competitor cards
 
 Each step shows a status indicator. Users can revisit any step.
 

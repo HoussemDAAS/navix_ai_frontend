@@ -121,6 +121,14 @@
   --color-destructive-800: #7C2323;
   --color-destructive-900: #601B1B;
 
+  /* ── Slate scale (used in onboarding UI) ── */
+  --color-slate-500: #64748B;
+  --color-slate-900: #1E293B;
+  --color-slate-400: #94A3B8;
+
+  /* ── Signature card (landing page pattern) ── */
+  --shadow-signature: 0px 5px 0px 0px #191A23;
+
   /* ── Warning scale (gold/amber) ── */
   --color-warning-50:  #FEFAF5;
   --color-warning-100: #FBF2CB;

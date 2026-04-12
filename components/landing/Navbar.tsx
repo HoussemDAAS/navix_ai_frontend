@@ -33,12 +33,20 @@ export function Navbar({ className }: { className?: string }) {
           ))}
         </div>
 
-        <Link
-          href="/signup"
-          className="hidden items-center justify-center rounded-[12px] bg-primary-btn px-4 py-3 text-body-2 font-medium text-white shadow-card transition-all duration-200 hover:bg-primary-700 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] md:inline-flex"
-        >
-          Sign Up
-        </Link>
+        <div className="hidden items-center gap-3 md:flex">
+          <Link
+            href="/login"
+            className="inline-flex items-center justify-center rounded-[12px] px-4 py-2.5 text-body-2 font-medium text-primary-900 transition-colors hover:bg-alpha-5"
+          >
+            Sign In
+          </Link>
+          <Link
+            href="/signup"
+            className="inline-flex items-center justify-center rounded-[12px] bg-secondary-300 px-4 py-2.5 text-body-2 font-medium text-primary-900 border border-primary-900 shadow-signature transition-all duration-200 hover:bg-secondary-400 hover:shadow-[0px_3px_0px_0px_#191a23] active:shadow-none active:translate-y-[2px]"
+          >
+            Try Free Trial
+          </Link>
+        </div>
 
         <button
           className="text-primary-900 md:hidden"
@@ -62,10 +70,18 @@ export function Navbar({ className }: { className?: string }) {
             </Link>
           ))}
           <Link
-            href="/signup"
-            className="flex w-full items-center justify-center rounded-[12px] bg-primary-btn px-4 py-3 text-body-2 font-medium text-white shadow-card"
+            href="/login"
+            className="flex w-full items-center justify-center rounded-[12px] px-4 py-3 text-body-2 font-medium text-primary-900 border border-alpha-10"
+            onClick={() => setMobileOpen(false)}
           >
-            Sign Up
+            Sign In
+          </Link>
+          <Link
+            href="/signup"
+            className="flex w-full items-center justify-center rounded-[12px] bg-secondary-300 px-4 py-3 text-body-2 font-medium text-primary-900 border border-primary-900 shadow-signature"
+            onClick={() => setMobileOpen(false)}
+          >
+            Try Free Trial
           </Link>
         </div>
       )}
