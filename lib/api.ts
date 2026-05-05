@@ -55,6 +55,16 @@ export interface Project {
   name: string
   niche: string
   location: string | null
+  persona: string | null
+  website: string | null
+  instagram_handle: string | null
+  tiktok_handle: string | null
+  youtube_handle: string | null
+  created_at: string
+}
+
+export function getProjects() {
+  return request<{ message: string; data: Project[] }>('/projects')
 }
 
 export function createProject(data: CreateProjectPayload) {
@@ -78,6 +88,23 @@ export interface BrandKitPayload {
   target_audience?: string
   constraints?: string[]
   preferred_cta?: string
+}
+
+export interface BrandKit {
+  id: string
+  project_id: string
+  tone_of_voice: string | null
+  formality_level: string | null
+  vocab_exclude: string | null
+  objective: string | null
+  target_audience: string | null
+  constraints: string[] | null
+  preferred_cta: string | null
+  updated_at: string
+}
+
+export function getBrandKit(projectId: string) {
+  return request<{ message: string; data: BrandKit | null }>(`/projects/${projectId}/brand-kit`)
 }
 
 export function saveBrandKit(projectId: string, data: BrandKitPayload) {

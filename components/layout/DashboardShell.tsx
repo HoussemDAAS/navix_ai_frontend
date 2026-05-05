@@ -27,27 +27,26 @@ export function DashboardShell({ children }: DashboardShellProps) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user: currentUser } } = await supabase.auth.getUser()
-      if (!currentUser) {
-        router.push('/login')
-        return
-      }
-      setUser(currentUser)
-      setLoading(false)
-    }
-
-    getUser()
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         if (!session) {
           router.push('/login')
         } else {
           setUser(session.user)
+          setLoading(false)
         }
       }
     )
+
+    // Initial session check from local storage (no network call, no lock contention)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        router.push('/login')
+      } else {
+        setUser(session.user)
+        setLoading(false)
+      }
+    })
 
     return () => subscription.unsubscribe()
   }, [router])
