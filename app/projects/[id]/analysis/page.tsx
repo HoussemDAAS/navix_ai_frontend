@@ -21,11 +21,14 @@ import { cn } from '@/lib/utils'
 import {
   getAnalysis,
   getCompetitors,
+  getFieldAnalytics,
   getJobStatus,
   runAnalysis,
   type AnalysisBrief,
   type Competitor,
+  type FieldAnalytics,
 } from '@/lib/api'
+import { FieldAnalyticsSection } from '@/components/analysis/FieldAnalyticsSection'
 
 type AnalysisResult = AnalysisBrief
 
@@ -37,6 +40,7 @@ export default function AnalysisPage() {
 
   const [pageState, setPageState] = useState<PageState>('loading')
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
+  const [fieldData, setFieldData] = useState<FieldAnalytics | null>(null)
   const [competitors, setCompetitors] = useState<Competitor[]>([])
   const [jobProgress, setJobProgress] = useState(0)
   const [errorMsg, setErrorMsg] = useState('')
@@ -45,11 +49,13 @@ export default function AnalysisPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [analysisRes, compRes] = await Promise.all([
+        const [analysisRes, compRes, fieldRes] = await Promise.all([
           getAnalysis(projectId).catch(() => ({ data: null })),
           getCompetitors(projectId).catch(() => ({ data: [] as Competitor[] })),
+          getFieldAnalytics(projectId).catch(() => ({ data: null as FieldAnalytics | null })),
         ])
         setCompetitors(compRes.data || [])
+        setFieldData(fieldRes.data ?? null)
         if (analysisRes.data) {
           setAnalysis(analysisRes.data)
           setPageState('complete')
@@ -139,6 +145,11 @@ export default function AnalysisPage() {
           </p>
         </motion.div>
 
+        {/* ─── FIELD DATA: real numbers from scraped posts (no AI needed) ─── */}
+        {fieldData && fieldData.generated_from.posts > 0 && (
+          <FieldAnalyticsSection data={fieldData} />
+        )}
+
         {/* ─── EMPTY STATE: Run Analysis ─── */}
         {pageState === 'empty' && (
           <motion.div
@@ -151,10 +162,14 @@ export default function AnalysisPage() {
                 <BarChart3 className="size-8 text-info-500" />
               </div>
               <h2 className="text-h6 font-bold text-primary-900 mb-2">
-                Ready to analyze your market
+                {fieldData && fieldData.generated_from.posts > 0
+                  ? 'Turn the numbers into a strategy'
+                  : 'Ready to analyze your market'}
               </h2>
               <p className="text-body-2 text-alpha-60 max-w-[400px] mx-auto mb-2">
-                Navix will study your {competitors.length} tracked competitor{competitors.length !== 1 ? 's' : ''} and their content to find patterns, winning hooks, and untapped opportunities.
+                {fieldData && fieldData.generated_from.posts > 0
+                  ? `The field data above is live. Navix AI will read all ${fieldData.generated_from.posts} posts and turn them into winning hooks, content gaps and takeaways for your brand.`
+                  : `Navix will study your ${competitors.length} tracked competitor${competitors.length !== 1 ? 's' : ''} and their content to find patterns, winning hooks, and untapped opportunities.`}
               </p>
               <p className="text-caption-1 text-alpha-40 mb-8">
                 Takes about 30-60 seconds

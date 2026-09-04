@@ -487,6 +487,65 @@ export function runAnalysis(projectId: string) {
   })
 }
 
+// ── Field analytics (computed from scraped posts, no AI) ──
+
+export interface FieldTopPost {
+  post_url: string | null
+  thumbnail_url: string | null
+  caption: string | null
+  content_type: string | null
+  likes_count: number
+  comments_count: number
+  views_count: number
+  published_at: string | null
+}
+
+export interface AccountAnalytics {
+  id: string | null
+  handle: string
+  platform: string
+  avatar_url: string | null
+  followers_count: number | null
+  tracked: boolean
+  posts: number
+  avg_likes: number
+  avg_comments: number
+  avg_views: number
+  engagement_rate: number | null
+  posts_per_week: number | null
+  dominant_format: string | null
+  format_mix: Array<{ format: string; count: number }>
+  top_posts: FieldTopPost[]
+}
+
+export interface FieldAnalytics {
+  generated_from: {
+    posts: number
+    self_posts: number
+    competitors_with_content: number
+    oldest_post: string | null
+    newest_post: string | null
+  }
+  field: {
+    avg_engagement_rate: number | null
+    posts_per_week: number | null
+    format_mix: Array<{ format: string; count: number; share: number }>
+    top_hashtags: Array<{ tag: string; count: number }>
+    posting_days: Array<{ day: string; count: number }>
+    posting_hours: Array<{ hour: number; count: number }>
+  }
+  competitors: AccountAnalytics[]
+  self: AccountAnalytics | null
+  comparison: {
+    engagement_vs_field: number | null
+    cadence_vs_field: number | null
+  }
+}
+
+export function getFieldAnalytics(projectId: string) {
+  return request<{ data: FieldAnalytics }>(`/projects/${projectId}/analysis/field`)
+}
+
 // ── Profile ──
 
 export type ProfilePersona = 'ecommerce' | 'agency' | 'creator'
