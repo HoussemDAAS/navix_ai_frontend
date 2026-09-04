@@ -36,7 +36,7 @@ const FORMALITY_LEVELS = [
   { value: 'Formal', label: 'Formal', example: '"We\'re happy to help you with that."' },
   { value: 'Neutral', label: 'Neutral', example: '"Happy to help! Here\'s what you need."' },
   { value: 'Informal', label: 'Informal', example: '"Hey! Let me sort that out for you."' },
-  { value: 'Very Informal', label: 'Very Informal', example: '"Yo, I got you! Check this out 👇"' },
+  { value: 'Very Informal', label: 'Very Informal', example: '"Yo, I got you. Check this out."' },
 ]
 
 type SaveStatus = 'idle' | 'saving' | 'success' | 'error'

@@ -3,42 +3,41 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, User } from 'lucide-react'
+import { ArrowRight, Globe } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { StepShell } from '@/components/onboarding/StepShell'
 import { LimeButton } from '@/components/onboarding/LimeButton'
 import { CountryPicker } from '@/components/onboarding/CountryPicker'
 import { SocialLinksStep } from '@/components/onboarding/SocialLinksStep'
+import { LogoUploader } from '@/components/onboarding/LogoUploader'
 import { TransitionStep } from '@/components/onboarding/TransitionStep'
 import { cn } from '@/lib/utils'
 import { updateProfile, getProjects, type Profile } from '@/lib/api'
 import { useOnboardingStore } from '@/stores/onboarding'
 
-const CREATOR_NICHES = [
-  'Fashion & Style',
-  'Beauty & Makeup',
-  'Fitness & Health',
-  'Travel',
-  'Food & Cooking',
-  'Tech & Reviews',
-  'Gaming',
-  'Comedy',
-  'Education',
-  'Lifestyle',
-  'Business',
-  'Art & Design',
-  'Music',
-  'Parenting',
-  'Pets',
-  'Sports',
+const AGENCY_NICHES = [
+  'Multi-niche / General',
+  'Beauty & Skincare',
+  'Fashion & Apparel',
+  'Food & Restaurant',
+  'Real Estate',
+  'Health & Fitness',
+  'Tech & SaaS',
+  'Travel & Hospitality',
+  'Education & EdTech',
+  'Finance & Fintech',
+  'E-commerce (DTC)',
+  'Local services',
+  'B2B services',
+  'Entertainment & Media',
 ]
 
 type StepIdx = 0 | 1 | 2
 
 const TOTAL_STEPS = 3
 
-export default function CreatorOnboardingPage() {
+export default function AgencyOnboardingPage() {
   const router = useRouter()
   const draft = useOnboardingStore((s) => s.draft)
   const patchDraft = useOnboardingStore((s) => s.patchDraft)
@@ -51,7 +50,7 @@ export default function CreatorOnboardingPage() {
   const [errors, setErrors] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
-    setPersona('creator')
+    setPersona('agency')
   }, [setPersona])
 
   function clearField(name: string) {
@@ -85,9 +84,9 @@ export default function CreatorOnboardingPage() {
   async function handleIdentitySubmit(e: React.FormEvent) {
     e.preventDefault()
     const newErrors: Record<string, boolean> = {}
-    if (!draft.full_name.trim()) newErrors.full_name = true
-    if (!draft.niche) newErrors.niche = true
+    if (!draft.entity_name.trim()) newErrors.entity_name = true
     if (!draft.country) newErrors.country = true
+    if (!draft.niche) newErrors.niche = true
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
@@ -96,10 +95,12 @@ export default function CreatorOnboardingPage() {
 
     await save(
       {
-        persona: 'creator',
-        full_name: draft.full_name.trim(),
-        niche: draft.niche,
+        persona: 'agency',
+        entity_name: draft.entity_name.trim(),
+        entity_logo_url: draft.entity_logo_url,
+        website_url: draft.website_url.trim() || null,
         country: draft.country,
+        niche: draft.niche,
         onboarding_step: 'socials',
       },
       1,
@@ -110,7 +111,7 @@ export default function CreatorOnboardingPage() {
 
   async function handleSocialsSubmit() {
     // Setting onboarding_step to 'scraping' makes the backend create the
-    // project, scrape the pasted accounts and launch competitor discovery.
+    // agency workspace, scrape the pasted accounts and launch discovery.
     const links = draft.has_social_presence
       ? draft.social_links.map((l) => l.trim()).filter(Boolean)
       : []
@@ -157,46 +158,85 @@ export default function CreatorOnboardingPage() {
           <StepShell
             step={1}
             total={TOTAL_STEPS}
-            title="Let's get to know you"
-            subtitle="The basics of your channel. We use this to surface creators in your exact lane, not just your category."
+            title="Tell us about your agency"
+            subtitle="Set up your workspace once. You'll spin up a fresh project for each client right from your dashboard."
             onBack={() => router.push('/onboarding/account-type')}
             backLabel="Change account type"
           >
             <form onSubmit={handleIdentitySubmit} className="space-y-5">
               <div className="space-y-1.5">
-                <Label htmlFor="full_name" className="text-caption-1 font-semibold text-primary-900">
-                  Your name or creator handle
+                <Label htmlFor="agency_name" className="text-caption-1 font-semibold text-primary-900">
+                  Agency name
                 </Label>
                 <Input
-                  id="full_name"
+                  id="agency_name"
                   size="lg"
-                  placeholder="e.g. Sarah Lee or Sarah Creates"
-                  leadIcon={<User className="size-4" />}
-                  value={draft.full_name}
+                  placeholder="e.g. Northwind Studio"
+                  value={draft.entity_name}
                   onChange={(e) => {
-                    patchDraft({ full_name: e.target.value })
-                    clearField('full_name')
+                    patchDraft({ entity_name: e.target.value })
+                    clearField('entity_name')
                   }}
-                  error={errors.full_name}
+                  error={errors.entity_name}
                 />
-                {errors.full_name && (
-                  <p className="text-caption-2 text-destructive-500">Tell us what to call you</p>
+                {errors.entity_name && (
+                  <p className="text-caption-2 text-destructive-500">Agency name is required</p>
+                )}
+              </div>
+
+              <LogoUploader
+                value={draft.entity_logo_url}
+                onChange={(url) => patchDraft({ entity_logo_url: url })}
+                label="Agency logo"
+              />
+
+              <div className="space-y-1.5">
+                <Label htmlFor="agency_website" className="text-caption-1 font-semibold text-primary-900">
+                  Website
+                  <span className="ml-1 text-caption-2 font-normal text-alpha-40">Optional</span>
+                </Label>
+                <Input
+                  id="agency_website"
+                  size="lg"
+                  type="url"
+                  placeholder="https://yourstudio.com"
+                  leadIcon={<Globe className="size-4" />}
+                  value={draft.website_url}
+                  onChange={(e) => patchDraft({ website_url: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-caption-1 font-semibold text-primary-900">
+                  Country
+                </Label>
+                <CountryPicker
+                  value={draft.country || null}
+                  onChange={(code) => {
+                    patchDraft({ country: code })
+                    clearField('country')
+                  }}
+                  error={errors.country}
+                />
+                {errors.country && (
+                  <p className="text-caption-2 text-destructive-500">Pick a country</p>
                 )}
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-caption-1 font-semibold text-primary-900">
-                  What do you create?
+                  Where do most of your clients live?
                 </Label>
+                <p className="text-caption-2 text-alpha-50 -mt-0.5 mb-1.5">
+                  We use this as a starting point. You can change it per client project.
+                </p>
                 <div
                   className={cn(
                     'flex flex-wrap gap-1.5 rounded-[16px] border p-3 bg-alpha-5/40 transition-colors',
-                    errors.niche
-                      ? 'border-destructive-200 bg-destructive-50/60'
-                      : 'border-alpha-10',
+                    errors.niche ? 'border-destructive-200 bg-destructive-50/60' : 'border-alpha-10',
                   )}
                 >
-                  {CREATOR_NICHES.map((n) => {
+                  {AGENCY_NICHES.map((n) => {
                     const selected = draft.niche === n
                     return (
                       <button
@@ -219,24 +259,7 @@ export default function CreatorOnboardingPage() {
                   })}
                 </div>
                 {errors.niche && (
-                  <p className="text-caption-2 text-destructive-500">Pick the closest niche</p>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-caption-1 font-semibold text-primary-900">
-                  Where are you based?
-                </Label>
-                <CountryPicker
-                  value={draft.country || null}
-                  onChange={(code) => {
-                    patchDraft({ country: code })
-                    clearField('country')
-                  }}
-                  error={errors.country}
-                />
-                {errors.country && (
-                  <p className="text-caption-2 text-destructive-500">Pick a country</p>
+                  <p className="text-caption-2 text-destructive-500">Pick at least one focus area</p>
                 )}
               </div>
 
@@ -260,8 +283,8 @@ export default function CreatorOnboardingPage() {
           <StepShell
             step={2}
             total={TOTAL_STEPS}
-            title="Plug in your channels"
-            subtitle="Paste the links to your profiles. We read your real posts to learn your voice and find the creators competing for your audience."
+            title="Your agency's own channels"
+            subtitle="Paste the links to your agency's profiles so we can learn from the work you publish. You'll add each client's accounts in their own project."
             onBack={() => setStep(0)}
           >
             <SocialLinksStep
@@ -276,7 +299,7 @@ export default function CreatorOnboardingPage() {
               onSubmit={handleSocialsSubmit}
               saving={saving}
               error={error}
-              descriptionPlaceholder="e.g. Short-form videos about personal finance for young professionals in Tunisia: budgeting tips, side hustles, honest reviews."
+              descriptionPlaceholder="e.g. Social media agency in Tunis for restaurants and beauty salons: reels, menu shoots, promo campaigns."
             />
           </StepShell>
         </motion.div>
@@ -285,8 +308,8 @@ export default function CreatorOnboardingPage() {
       {step === 2 && (
         <motion.div key="transition" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <TransitionStep
-            title="Studying your channel..."
-            subtitle="We're scanning your niche to find the creators you should be watching closely."
+            title="Setting up your agency workspace..."
+            subtitle="Once you're in, hit New project to create a workspace for your first client."
             durationMs={2500}
             onComplete={handleTransitionComplete}
           />

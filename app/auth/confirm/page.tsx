@@ -16,7 +16,7 @@ export default function AuthConfirmPage() {
       attempts++
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session) {
-          router.replace('/onboarding/role')
+          router.replace('/onboarding')
         } else if (attempts < maxAttempts) {
           setTimeout(tryResolveSession, 500)
         } else {

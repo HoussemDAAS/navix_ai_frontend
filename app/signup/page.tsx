@@ -9,6 +9,7 @@ import { AuthLayout } from '@/components/auth/AuthLayout'
 import { OAuthButtons } from '@/components/auth/OAuthButtons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useOnboardingStore } from '@/stores/onboarding'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -59,7 +60,11 @@ export default function SignupPage() {
       }
     }
 
-    router.push('/onboarding/role')
+    // Bug 6: wipe any leftover onboarding draft from a previous session/user
+    // before the new user lands on /onboarding.
+    useOnboardingStore.getState().reset()
+
+    router.push('/onboarding')
     router.refresh()
   }
 

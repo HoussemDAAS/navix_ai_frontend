@@ -1,10 +1,37 @@
 'use client'
 
+import { useState } from 'react'
 import { Check, X, Instagram, Youtube } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
+import { avatarSrc } from '@/lib/avatar'
 import type { MappedCompetitor } from '@/app/projects/[id]/competitors/page'
+
+/** Avatar with initials fallback (external CDN links expire) */
+function CompetitorAvatar({ competitor }: { competitor: MappedCompetitor }) {
+  const [broken, setBroken] = useState(false)
+  const src = avatarSrc(competitor.avatarUrl)
+  if (src && !broken) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={competitor.handle}
+        onError={() => setBroken(true)}
+        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover shrink-0"
+      />
+    )
+  }
+  return (
+    <div
+      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white text-caption-1 sm:text-body-2 font-bold shrink-0"
+      style={{ backgroundColor: competitor.color }}
+    >
+      {competitor.initials}
+    </div>
+  )
+}
 
 function TikTokIcon({ className }: { className?: string }) {
   return (
@@ -70,20 +97,7 @@ export function CompetitorCard({
       <div className="p-4 sm:p-6">
         <div className="flex items-start gap-3 sm:gap-4">
           {/* Avatar */}
-          {competitor.avatarUrl ? (
-            <img
-              src={`/api/image-proxy?url=${encodeURIComponent(competitor.avatarUrl)}`}
-              alt={competitor.handle}
-              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover shrink-0"
-            />
-          ) : (
-            <div
-              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white text-caption-1 sm:text-body-2 font-bold shrink-0"
-              style={{ backgroundColor: competitor.color }}
-            >
-              {competitor.initials}
-            </div>
-          )}
+          <CompetitorAvatar competitor={competitor} />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -97,6 +111,11 @@ export function CompetitorCard({
               <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-caption-2 font-medium', confidence.classes)}>
                 {confidence.label}
               </span>
+              {competitor.isNew && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-300 border border-primary-900 text-caption-2 font-semibold text-primary-900">
+                  New
+                </span>
+              )}
             </div>
 
             {/* Stats + tags */}

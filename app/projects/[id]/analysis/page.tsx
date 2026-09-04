@@ -18,69 +18,16 @@ import {
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
-import { getCompetitors, type Competitor } from '@/lib/api'
+import {
+  getAnalysis,
+  getCompetitors,
+  getJobStatus,
+  runAnalysis,
+  type AnalysisBrief,
+  type Competitor,
+} from '@/lib/api'
 
-/* ─── Types for analysis results ─── */
-interface FormatInsight {
-  format: string
-  frequency: string
-  avg_engagement: string
-  examples: string[]
-}
-
-interface HookInsight {
-  hook_text: string
-  pattern: string
-  effectiveness: string
-}
-
-interface Opportunity {
-  area: string
-  reasoning: string
-  confidence: number
-}
-
-interface AnalysisResult {
-  dominant_formats: FormatInsight[]
-  winning_hooks: HookInsight[]
-  whitespace_opportunities: Opportunity[]
-  content_cadence: string
-  key_takeaways: string[]
-}
-
-/* ─── API helpers ─── */
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  const { supabase } = await import('@/lib/supabase/client')
-  const { data: { session } } = await supabase.auth.getSession()
-  if (session?.access_token) return { Authorization: `Bearer ${session.access_token}` }
-  return {}
-}
-
-async function runAnalysis(projectId: string): Promise<{ jobId: string }> {
-  const headers = await getAuthHeaders()
-  const res = await fetch(`${API_URL}/projects/${projectId}/analysis/run`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...headers },
-  })
-  if (!res.ok) throw new Error('Failed to start analysis')
-  return res.json()
-}
-
-async function getJobStatus(jobId: string): Promise<{ status: string; progress: number; output: AnalysisResult | null; error: string | null }> {
-  const headers = await getAuthHeaders()
-  const res = await fetch(`${API_URL}/jobs/${jobId}/status`, { headers })
-  if (!res.ok) throw new Error('Failed to check job status')
-  return res.json()
-}
-
-async function getAnalysis(projectId: string): Promise<{ data: AnalysisResult | null }> {
-  const headers = await getAuthHeaders()
-  const res = await fetch(`${API_URL}/projects/${projectId}/analysis`, { headers })
-  if (!res.ok) throw new Error('Failed to fetch analysis')
-  return res.json()
-}
+type AnalysisResult = AnalysisBrief
 
 type PageState = 'loading' | 'empty' | 'running' | 'complete' | 'error'
 
@@ -120,13 +67,21 @@ export default function AnalysisPage() {
   const pollJob = useCallback(async (jobId: string) => {
     const interval = setInterval(async () => {
       try {
-        const status = await getJobStatus(jobId)
+        const status = await getJobStatus<AnalysisResult>(jobId)
         setJobProgress(status.progress)
 
-        if (status.status === 'completed' && status.output) {
+        if (status.status === 'completed') {
           clearInterval(interval)
-          setAnalysis(status.output)
-          setPageState('complete')
+          // Prefer the persisted brief; the job output is the same result
+          const fresh = await getAnalysis(projectId).catch(() => ({ data: null }))
+          const result = fresh.data ?? status.output
+          if (result) {
+            setAnalysis(result)
+            setPageState('complete')
+          } else {
+            setErrorMsg('The analysis finished but no brief was saved')
+            setPageState('error')
+          }
         } else if (status.status === 'failed') {
           clearInterval(interval)
           setErrorMsg(status.error || 'Analysis failed')
@@ -140,7 +95,7 @@ export default function AnalysisPage() {
     }, 3000)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [projectId])
 
   const handleRunAnalysis = async () => {
     setPageState('running')
@@ -148,8 +103,8 @@ export default function AnalysisPage() {
     setErrorMsg('')
 
     try {
-      const { jobId } = await runAnalysis(projectId)
-      pollJob(jobId)
+      const { data } = await runAnalysis(projectId)
+      pollJob(data.jobId)
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Failed to start')
       setPageState('error')
