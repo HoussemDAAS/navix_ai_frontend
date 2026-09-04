@@ -546,6 +546,77 @@ export function getFieldAnalytics(projectId: string) {
   return request<{ data: FieldAnalytics }>(`/projects/${projectId}/analysis/field`)
 }
 
+// ── Deep profiles (competitor / self): posts + stats + grounded AI read ──
+
+export interface ProfilePost {
+  id: string
+  post_url: string | null
+  thumbnail_url: string | null
+  caption: string | null
+  content_type: string | null
+  hashtags: string[] | null
+  likes_count: number | null
+  comments_count: number | null
+  views_count: number | null
+  shares_count: number | null
+  saves_count: number | null
+  engagement_rate: number | null
+  duration_seconds: number | null
+  published_at: string | null
+}
+
+export interface CompetitorInsight {
+  summary: string
+  what_works: string[]
+  weaknesses: string[]
+  threat: { level: 'low' | 'medium' | 'high'; reason: string }
+  steal: string[]
+}
+
+export interface SelfInsight {
+  summary: string
+  voice: string
+  what_works: string[]
+  gaps: string[]
+  next_moves: string[]
+}
+
+export type InsightStatus = 'ready' | 'stale' | 'unavailable' | 'no_data'
+
+export interface CompetitorProfile {
+  competitor: Competitor
+  stats: AccountAnalytics
+  posting_days: Array<{ day: string; count: number }>
+  posts: ProfilePost[]
+  insight: CompetitorInsight | null
+  insight_status: InsightStatus
+  insight_error: string | null
+  insight_generated_at: string | null
+}
+
+export interface SelfProfileData {
+  profile: Profile
+  stats: AccountAnalytics
+  posting_days: Array<{ day: string; count: number }>
+  posts: ProfilePost[]
+  insight: SelfInsight | null
+  insight_status: InsightStatus
+  insight_error: string | null
+  insight_generated_at: string | null
+}
+
+export function getCompetitorProfile(projectId: string, competitorId: string, refresh = false) {
+  return request<{ data: CompetitorProfile }>(
+    `/projects/${projectId}/competitors/${competitorId}/profile${refresh ? '?refresh=true' : ''}`,
+  )
+}
+
+export function getSelfProfile(projectId: string, refresh = false) {
+  return request<{ data: SelfProfileData }>(
+    `/projects/${projectId}/self-profile${refresh ? '?refresh=true' : ''}`,
+  )
+}
+
 // ── Profile ──
 
 export type ProfilePersona = 'ecommerce' | 'agency' | 'creator'

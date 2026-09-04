@@ -464,6 +464,7 @@ export default function CompetitorsPage() {
                   <CompetitorCard
                     key={competitor.id}
                     competitor={competitor}
+                    projectId={projectId}
                     index={i}
                     isTracked={trackedIds.has(competitor.id)}
                     isDismissed={dismissedIds.has(competitor.id)}

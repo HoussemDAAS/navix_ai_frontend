@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, X, Instagram, Youtube } from 'lucide-react'
+import Link from 'next/link'
+import { Check, X, Instagram, Youtube, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -62,6 +63,7 @@ function formatFollowers(count: number | null): string | null {
 
 interface CompetitorCardProps {
   competitor: MappedCompetitor
+  projectId: string
   index: number
   isTracked: boolean
   isDismissed: boolean
@@ -71,6 +73,7 @@ interface CompetitorCardProps {
 
 export function CompetitorCard({
   competitor,
+  projectId,
   index,
   isTracked,
   isDismissed,
@@ -95,13 +98,16 @@ export function CompetitorCard({
       )}
     >
       <div className="p-4 sm:p-6">
-        <div className="flex items-start gap-3 sm:gap-4">
-          {/* Avatar */}
+        {/* Avatar + identity open the full profile dossier */}
+        <Link
+          href={`/projects/${projectId}/competitors/${competitor.id}`}
+          className="group flex items-start gap-3 sm:gap-4"
+        >
           <CompetitorAvatar competitor={competitor} />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-body-2 sm:text-body-1 font-semibold text-primary-900 truncate">
+              <span className="text-body-2 sm:text-body-1 font-semibold text-primary-900 truncate group-hover:underline underline-offset-2">
                 {competitor.handle}
               </span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-alpha-10 text-caption-2 font-medium text-primary-900">
@@ -136,7 +142,13 @@ export function CompetitorCard({
               {competitor.biography || competitor.inclusionReason}
             </p>
           </div>
-        </div>
+
+          {/* View profile affordance */}
+          <span className="hidden sm:flex items-center gap-1 shrink-0 self-center text-caption-2 font-medium text-alpha-40 group-hover:text-primary-900 transition-colors">
+            <span className="hidden lg:inline">View profile</span>
+            <ChevronRight className="size-4" />
+          </span>
+        </Link>
 
         {/* Actions */}
         <div className="flex items-center gap-2 mt-4 ml-0 sm:ml-14">

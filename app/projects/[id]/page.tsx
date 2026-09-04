@@ -138,40 +138,43 @@ function PodiumCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 + rank * 0.08, duration: 0.4 }}
       className={cn(
-        'relative flex flex-col items-center rounded-[16px] border bg-white px-4 pb-5 text-center',
+        'relative rounded-[16px] border bg-white transition-all duration-200 hover:border-primary-900',
         rank === 1
-          ? 'border-primary-900 shadow-signature pt-8 sm:-translate-y-3'
-          : 'border-alpha-10 shadow-card pt-8',
+          ? 'border-primary-900 shadow-signature sm:-translate-y-3'
+          : 'border-alpha-10 shadow-card',
       )}
     >
       <span
         className={cn(
-          'absolute -top-3.5 inline-flex h-7 min-w-7 items-center justify-center rounded-full border px-2 text-caption-1 font-bold',
+          'absolute -top-3.5 left-1/2 -translate-x-1/2 inline-flex h-7 min-w-7 items-center justify-center rounded-full border px-2 text-caption-1 font-bold',
           rankStyles,
         )}
       >
         #{rank}
       </span>
-      <CompetitorAvatar competitor={competitor} size={rank === 1 ? 'lg' : 'md'} />
-      <p className="mt-3 text-body-2 font-semibold text-primary-900 truncate max-w-full">
-        @{competitor.handle}
-      </p>
-      <p className="text-caption-2 text-alpha-60 capitalize">
-        {competitor.platform?.toLowerCase()} · {formatFollowers(competitor.followers_count)} followers
-      </p>
-      <span className="mt-2 inline-flex items-center rounded-full bg-success-50 border border-success-200 px-2.5 py-0.5 text-caption-2 font-semibold text-success-700">
-        {Math.round(competitor.confidence_score)}% match
-      </span>
-      {competitor.inclusion_reason && (
-        <p className="mt-2 text-caption-2 text-alpha-60 line-clamp-2">
-          {competitor.inclusion_reason}
-        </p>
-      )}
       <Link
-        href={`/projects/${projectId}/competitors`}
-        className="mt-3 text-caption-2 font-medium text-primary-900 underline-offset-2 hover:underline"
+        href={`/projects/${projectId}/competitors/${competitor.id}`}
+        className="group flex h-full flex-col items-center px-4 pb-5 pt-8 text-center"
       >
-        View profile
+        <CompetitorAvatar competitor={competitor} size={rank === 1 ? 'lg' : 'md'} />
+        <p className="mt-3 text-body-2 font-semibold text-primary-900 truncate max-w-full">
+          @{competitor.handle}
+        </p>
+        <p className="text-caption-2 text-alpha-60 capitalize">
+          {competitor.platform?.toLowerCase()} · {formatFollowers(competitor.followers_count)} followers
+        </p>
+        <span className="mt-2 inline-flex items-center rounded-full bg-success-50 border border-success-200 px-2.5 py-0.5 text-caption-2 font-semibold text-success-700">
+          {Math.round(competitor.confidence_score)}% match
+        </span>
+        {competitor.inclusion_reason && (
+          <p className="mt-2 text-caption-2 text-alpha-60 line-clamp-2">
+            {competitor.inclusion_reason}
+          </p>
+        )}
+        <span className="mt-3 inline-flex items-center gap-1 text-caption-2 font-medium text-primary-900 underline-offset-2 group-hover:underline">
+          View profile
+          <ArrowRight className="size-3" />
+        </span>
       </Link>
     </motion.div>
   )
@@ -389,13 +392,22 @@ export default function ProjectOverviewPage() {
                   Real accounts competing for your audience — found and ranked by Navix.
                 </p>
               </div>
-              <Link
-                href={`/projects/${projectId}/competitors`}
-                className="inline-flex items-center gap-1 text-caption-1 font-medium text-primary-900 hover:underline underline-offset-2 shrink-0"
-              >
-                View all {activeCompetitors.length}
-                <ArrowRight className="size-3.5" />
-              </Link>
+              <div className="flex items-center gap-4 shrink-0">
+                <Link
+                  href={`/projects/${projectId}/profile`}
+                  className="inline-flex items-center gap-1 text-caption-1 font-medium text-primary-900 hover:underline underline-offset-2"
+                >
+                  Your profile
+                  <ArrowRight className="size-3.5" />
+                </Link>
+                <Link
+                  href={`/projects/${projectId}/competitors`}
+                  className="inline-flex items-center gap-1 text-caption-1 font-medium text-primary-900 hover:underline underline-offset-2"
+                >
+                  View all {activeCompetitors.length}
+                  <ArrowRight className="size-3.5" />
+                </Link>
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:pt-3">
               {/* Podium order on desktop: #2, #1 (center, raised), #3 */}
