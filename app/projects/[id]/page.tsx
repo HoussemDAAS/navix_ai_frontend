@@ -489,7 +489,11 @@ export default function ProjectOverviewPage() {
 
               {insightsState === 'ready' && insights && !insights.available && (
                 <p className="text-body-2 text-alpha-60">
-                  Track a few competitors first — Navix needs a field to compare you against.
+                  {insights.reason === 'no_ai_credits'
+                    ? 'AI insights are paused — the OpenAI account has no credits. Add credits, then hit Refresh.'
+                    : insights.reason === 'ai_error'
+                      ? 'The AI read failed — hit Refresh to try again.'
+                      : 'Track a few competitors first — Navix needs a field to compare you against.'}
                 </p>
               )}
 

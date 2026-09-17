@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ProgressBar } from '@/components/onboarding/ProgressBar'
 import { CompetitorCard } from '@/components/competitors/CompetitorCard'
 import { CompetitorCardSkeleton } from '@/components/competitors/CompetitorCardSkeleton'
+import { AddCompetitorModal } from '@/components/competitors/AddCompetitorModal'
 import { ValidationProgress } from '@/components/competitors/ValidationProgress'
 import {
   getCompetitors,
@@ -107,6 +108,7 @@ export default function CompetitorsPage() {
   const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set())
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set())
   const [showAll, setShowAll] = useState(false)
+  const [showAdd, setShowAdd] = useState(false)
   const [celebrateAt3, setCelebrateAt3] = useState(false)
   const [discovery, setDiscovery] = useState<DiscoveryStatus | null>(null)
   const [retrying, setRetrying] = useState(false)
@@ -456,7 +458,23 @@ export default function CompetitorsPage() {
                 <RefreshCw className={`size-3.5 ${retrying ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">Search again</span>
               </button>
+              <button
+                type="button"
+                onClick={() => setShowAdd(true)}
+                title="Add a competitor by profile link"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-caption-1 font-medium text-primary-900 bg-secondary-300 border border-primary-900 hover:bg-secondary-400 transition-all duration-150 shrink-0"
+              >
+                <Plus className="size-3.5" />
+                <span className="hidden sm:inline">Add</span>
+              </button>
             </div>
+
+            <AddCompetitorModal
+              projectId={projectId}
+              open={showAdd}
+              onClose={() => setShowAdd(false)}
+              onAdded={() => { void refresh() }}
+            />
 
             <div className="space-y-4">
               <AnimatePresence mode="popLayout">

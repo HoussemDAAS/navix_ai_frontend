@@ -21,6 +21,7 @@ import {
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { Spinner } from '@/components/ui/spinner'
 import { LimeButton } from '@/components/onboarding/LimeButton'
+import { ExportMenu } from '@/components/calendar/ExportMenu'
 import { cn } from '@/lib/utils'
 import {
   getCalendar,
@@ -400,13 +401,16 @@ export default function CalendarPage() {
             </button>
           </div>
 
-          <LimeButton
-            size="md"
-            onClick={() => setModal({ type: 'create', date: new Date() })}
-          >
-            <Plus className="size-4" />
-            New post
-          </LimeButton>
+          <div className="flex items-center gap-2">
+            <ExportMenu items={items} />
+            <LimeButton
+              size="md"
+              onClick={() => setModal({ type: 'create', date: new Date() })}
+            >
+              <Plus className="size-4" />
+              New post
+            </LimeButton>
+          </div>
         </motion.div>
 
         {/* Calendar grid */}

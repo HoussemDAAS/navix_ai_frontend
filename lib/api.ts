@@ -605,6 +605,14 @@ export interface SelfProfileData {
   insight_generated_at: string | null
 }
 
+/** Manual add: paste a profile link or @handle → enriched, tracked competitor */
+export function addCompetitor(projectId: string, link: string) {
+  return request<{ data: Competitor }>(`/projects/${projectId}/competitors`, {
+    method: 'POST',
+    body: JSON.stringify({ link }),
+  })
+}
+
 export function getCompetitorProfile(projectId: string, competitorId: string, refresh = false) {
   return request<{ data: CompetitorProfile }>(
     `/projects/${projectId}/competitors/${competitorId}/profile${refresh ? '?refresh=true' : ''}`,
