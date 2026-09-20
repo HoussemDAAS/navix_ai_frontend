@@ -114,6 +114,22 @@ export function refreshCompetitorData(projectId: string, competitorId: string) {
   )
 }
 
+/** Brand kit read off the account's own posts, with the quotes that justify it */
+export interface BrandKitAutofill {
+  kit: BrandKit | null
+  filled_fields: string[]
+  posts_used: number
+  evidence: string[]
+  confidence: number | null
+}
+
+export function autofillBrandKit(projectId: string, overwrite = false) {
+  return request<{ message: string; data: BrandKitAutofill }>(
+    `/projects/${projectId}/brand-kit/autofill${overwrite ? '?overwrite=true' : ''}`,
+    { method: 'POST' },
+  )
+}
+
 export function createProject(data: CreateProjectPayload) {
   return request<{ message: string; data: Project }>('/projects', {
     method: 'POST',

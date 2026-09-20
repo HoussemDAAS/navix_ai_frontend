@@ -15,11 +15,13 @@ import {
   BookOpen,
   Trophy,
   MessageCircle,
+  Quote,
+  Wand2,
 } from 'lucide-react'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
-import { getBrandKit, saveBrandKit, type BrandKitPayload } from '@/lib/api'
+import { autofillBrandKit, getBrandKit, saveBrandKit, type BrandKitPayload } from '@/lib/api'
 
 /* ─── Tone tiles config ─── */
 const TONES = [
@@ -57,6 +59,11 @@ export default function BrandKitPage() {
   const [constraints, setConstraints] = useState<string[]>([])
   const [constraintInput, setConstraintInput] = useState('')
   const [preferredCta, setPreferredCta] = useState('')
+
+  // Auto-fill: the kit read off the user's own posts, with the quotes behind it
+  const [autofill, setAutofill] = useState<'idle' | 'running' | 'done' | 'error'>('idle')
+  const [autofillNote, setAutofillNote] = useState<string | null>(null)
+  const [evidence, setEvidence] = useState<string[]>([])
 
   useEffect(() => {
     async function fetchBrandKit() {
@@ -115,6 +122,34 @@ export default function BrandKitPage() {
       setSaveStatus('error')
       setErrorMessage(err instanceof Error ? err.message : 'Failed to save')
       setTimeout(() => setSaveStatus('idle'), 4000)
+    }
+  }
+
+  const handleAutofill = async () => {
+    setAutofill('running')
+    setAutofillNote(null)
+    try {
+      const res = await autofillBrandKit(projectId, true)
+      const kit = res.data.kit
+      if (kit) {
+        setToneOfVoice(kit.tone_of_voice ?? '')
+        setFormalityLevel(kit.formality_level ?? '')
+        setTargetAudience(kit.target_audience ?? '')
+        setObjective(kit.objective ?? '')
+        setVocabExclude(kit.vocab_exclude ?? '')
+        setConstraints(kit.constraints ?? [])
+        setPreferredCta(kit.preferred_cta ?? '')
+      }
+      setEvidence(res.data.evidence ?? [])
+      setAutofill('done')
+      const confidence =
+        res.data.confidence != null ? ` · confidence ${Math.round(res.data.confidence * 100)}%` : ''
+      setAutofillNote(
+        `Read from ${res.data.posts_used} of your posts${confidence}. It is already saved — adjust anything that feels off.`,
+      )
+    } catch (err) {
+      setAutofill('error')
+      setAutofillNote(err instanceof Error ? err.message : 'Could not read your posts right now.')
     }
   }
 
@@ -412,13 +447,79 @@ export default function BrandKitPage() {
           </div>
         </motion.section>
 
+        {/* ─── VOICE READ — what the AI saw in the user's own posts ─── */}
+        <AnimatePresence>
+          {autofill !== 'idle' && autofillNote && (
+            <motion.section
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className={cn(
+                'mb-6 rounded-[16px] border px-5 py-4',
+                autofill === 'error'
+                  ? 'border-destructive-200 bg-destructive-50'
+                  : 'border-secondary-400 bg-secondary-50',
+              )}
+            >
+              <p
+                className={cn(
+                  'text-body-2 font-semibold',
+                  autofill === 'error' ? 'text-destructive-700' : 'text-primary-900',
+                )}
+              >
+                {autofill === 'error' ? 'Could not read your posts' : 'Read from your own posts'}
+              </p>
+              <p
+                className={cn(
+                  'mt-0.5 text-caption-1',
+                  autofill === 'error' ? 'text-destructive-600' : 'text-alpha-60',
+                )}
+              >
+                {autofillNote}
+              </p>
+              {evidence.length > 0 && (
+                <ul className="mt-3 space-y-1.5">
+                  {evidence.slice(0, 4).map((quote, i) => (
+                    <li key={i} className="flex items-start gap-2 text-caption-1 text-primary-900">
+                      <Quote className="mt-0.5 size-3.5 shrink-0 text-alpha-40" />
+                      <span className="italic">“{quote}”</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </motion.section>
+          )}
+        </AnimatePresence>
+
         {/* ─── SAVE ─── */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.32, duration: 0.5 }}
-          className="flex items-center gap-4 pb-12"
+          className="flex flex-wrap items-center gap-4 pb-12"
         >
+          <button
+            type="button"
+            onClick={handleAutofill}
+            disabled={autofill === 'running' || saveStatus === 'saving'}
+            className={cn(
+              'inline-flex items-center gap-2.5 rounded-[14px] border border-primary-900 bg-white px-5 py-3.5 text-body-2 font-semibold text-primary-900 shadow-signature transition-all duration-200',
+              'hover:bg-secondary-50 hover:shadow-[0px_3px_0px_0px_#191a23] active:translate-y-[2px] active:shadow-none',
+              autofill === 'running' && 'cursor-wait opacity-70',
+            )}
+          >
+            {autofill === 'running' ? (
+              <>
+                <Spinner size="sm" />
+                Reading your posts...
+              </>
+            ) : (
+              <>
+                <Wand2 className="size-4" />
+                Auto-fill from my posts
+              </>
+            )}
+          </button>
           <button
             onClick={handleSave}
             disabled={saveStatus === 'saving'}
