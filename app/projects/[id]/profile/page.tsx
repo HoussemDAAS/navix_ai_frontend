@@ -7,6 +7,7 @@ import { ArrowRight } from 'lucide-react'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { BackLink } from '@/components/profile/BackLink'
 import { ProfileHero } from '@/components/profile/ProfileHero'
+import { FreshnessChip } from '@/components/profile/FreshnessChip'
 import { ProfileStats, buildProfileStats } from '@/components/profile/ProfileStats'
 import { CreatorScoreCard } from '@/components/profile/CreatorScoreCard'
 import { HighlightsRow } from '@/components/profile/HighlightsRow'
@@ -22,7 +23,9 @@ import { ProfileSkeleton } from '@/components/profile/ProfileSkeleton'
 import { ProfileErrorState } from '@/components/profile/ProfileErrorState'
 import {
   getFieldAnalytics,
+  getProject,
   getSelfProfile,
+  refreshProjectData,
   type FieldAnalytics,
   type SelfProfileData,
 } from '@/lib/api'
@@ -134,6 +137,14 @@ export default function SelfProfilePage() {
               avatarUrl={data.stats.avatar_url ?? data.profile.avatar_url}
               biography={data.profile.biography}
               tracked
+              freshness={
+                <FreshnessChip
+                  lastScrapedAt={data.profile.last_scraped_at}
+                  onRefresh={() => refreshProjectData(projectId).then((r) => r.data)}
+                  poll={() => getProject(projectId).then((r) => r.data.last_scraped_at)}
+                  onRefreshed={load}
+                />
+              }
             />
 
             <ProfileStats stats={buildProfileStats(data.stats)} />

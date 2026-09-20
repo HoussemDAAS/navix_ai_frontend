@@ -7,6 +7,8 @@ import { DashboardShell } from '@/components/layout/DashboardShell'
 import { LimeButton } from '@/components/onboarding/LimeButton'
 import { BackLink } from '@/components/profile/BackLink'
 import { ProfileHero } from '@/components/profile/ProfileHero'
+import { FreshnessChip } from '@/components/profile/FreshnessChip'
+import { refreshCompetitorData } from '@/lib/api'
 import { ProfileStats, buildProfileStats } from '@/components/profile/ProfileStats'
 import { AiReadIsland } from '@/components/profile/AiReadIsland'
 import { InsightList } from '@/components/profile/InsightList'
@@ -127,6 +129,18 @@ export default function CompetitorProfilePage() {
               tracked={tracked}
               action={trackCta}
               note={justTracked ? SCRAPE_NOTE : null}
+              freshness={
+                <FreshnessChip
+                  lastScrapedAt={data.competitor.last_scraped_at ?? null}
+                  onRefresh={() => refreshCompetitorData(projectId, competitorId).then((r) => r.data)}
+                  poll={() =>
+                    getCompetitorProfile(projectId, competitorId).then(
+                      (r) => r.data.competitor.last_scraped_at ?? null,
+                    )
+                  }
+                  onRefreshed={load}
+                />
+              }
             />
 
             {trackError && (

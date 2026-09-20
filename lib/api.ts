@@ -93,6 +93,27 @@ export function getProjects() {
   return request<{ message: string; data: Project[] }>('/projects')
 }
 
+/** Answer of a manual data refresh: the scrape runs in the background when started. */
+export interface RefreshOutcome {
+  started: boolean
+  reason?: 'too_soon' | 'no_handle' | 'already_running' | 'failed'
+  next_allowed_at?: string | null
+  scrape_job_ids?: string[]
+}
+
+export function refreshProjectData(projectId: string) {
+  return request<{ message: string; data: RefreshOutcome }>(`/projects/${projectId}/refresh`, {
+    method: 'POST',
+  })
+}
+
+export function refreshCompetitorData(projectId: string, competitorId: string) {
+  return request<{ message: string; data: RefreshOutcome }>(
+    `/projects/${projectId}/competitors/${competitorId}/refresh`,
+    { method: 'POST' },
+  )
+}
+
 export function createProject(data: CreateProjectPayload) {
   return request<{ message: string; data: Project }>('/projects', {
     method: 'POST',
@@ -211,6 +232,7 @@ export interface Competitor {
   validated_by_user: boolean | null
   rejected_by_user: boolean | null
   created_at?: string
+  last_scraped_at?: string | null
 }
 
 export interface DiscoveryStatus {
@@ -608,7 +630,8 @@ export interface CompetitorProfile {
 }
 
 export interface SelfProfileData {
-  profile: Profile
+  /** The user's profile merged with the project's own-account data (source of truth) */
+  profile: Profile & { last_scraped_at?: string | null }
   stats: AccountAnalytics
   posting_days: Array<{ day: string; count: number }>
   posts: ProfilePost[]

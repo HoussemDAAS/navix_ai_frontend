@@ -31,6 +31,7 @@ import {
   getCalendar,
   getProjectInsights,
   getAnalysis,
+  refreshProjectData,
   type Project,
   type Competitor,
   type BrandKit,
@@ -193,6 +194,8 @@ function OverviewContent() {
   const [calendarItems, setCalendarItems] = useState<CalendarItem[]>([])
   const [analysis, setAnalysis] = useState<AnalysisBrief | null>(null)
   const [loading, setLoading] = useState(true)
+  // Bumped when a data refresh lands so the page re-reads everything
+  const [reloadKey, setReloadKey] = useState(0)
 
   const [insights, setInsights] = useState<ProjectInsights | null>(null)
   const [insightsState, setInsightsState] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -223,7 +226,7 @@ function OverviewContent() {
       }
     }
     fetchData()
-  }, [projectId])
+  }, [projectId, reloadKey])
 
   const fetchInsights = useCallback(async (refresh = false) => {
     setInsightsState('loading')
@@ -334,7 +337,15 @@ function OverviewContent() {
           transition={{ delay: 0.03, duration: 0.4 }}
           className="mb-6"
         >
-          <ProjectHero project={project} persona={persona} />
+          <ProjectHero
+            project={project}
+            persona={persona}
+            freshness={{
+              onRefresh: () => refreshProjectData(projectId).then((r) => r.data),
+              poll: () => getProject(projectId).then((r) => r.data.last_scraped_at),
+              onRefreshed: () => setReloadKey((k) => k + 1),
+            }}
+          />
         </motion.div>
 
         {/* Progress Stepper */}

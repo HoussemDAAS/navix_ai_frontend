@@ -5,8 +5,10 @@ import Link from 'next/link'
 import { ArrowRight, BadgeCheck, Clock, Instagram, MapPin, Target } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { avatarSrc } from '@/lib/avatar'
+import { relativeTime } from '@/lib/relative-time'
 import { formatCount, initialsOf } from '@/components/dashboard/utils'
-import type { ProfilePersona, Project } from '@/lib/api'
+import { FreshnessChip } from '@/components/profile/FreshnessChip'
+import type { ProfilePersona, Project, RefreshOutcome } from '@/lib/api'
 
 const personaLabels: Record<ProfilePersona, string> = {
   ecommerce: 'E-commerce brand',
@@ -14,24 +16,17 @@ const personaLabels: Record<ProfilePersona, string> = {
   creator: 'Creator',
 }
 
-/** "3 days ago" style label for the last data refresh. */
-export function relativeTime(iso: string | null | undefined): string | null {
-  if (!iso) return null
-  const diffMs = Date.now() - new Date(iso).getTime()
-  if (!Number.isFinite(diffMs) || diffMs < 0) return null
-  const minutes = Math.floor(diffMs / 60_000)
-  if (minutes < 60) return minutes <= 1 ? 'just now' : `${minutes} min ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`
-  const days = Math.floor(hours / 24)
-  if (days < 30) return `${days} day${days === 1 ? '' : 's'} ago`
-  const months = Math.floor(days / 30)
-  return `${months} month${months === 1 ? '' : 's'} ago`
+interface FreshnessHandlers {
+  onRefresh: () => Promise<RefreshOutcome>
+  poll: () => Promise<string | null | undefined>
+  onRefreshed: () => void
 }
 
 interface ProjectHeroProps {
   project: Project
   persona: ProfilePersona | null
+  /** When given, the freshness line becomes an actionable "Refresh" chip */
+  freshness?: FreshnessHandlers
   className?: string
 }
 
@@ -40,7 +35,7 @@ interface ProjectHeroProps {
  * how fresh that data is. The same card serves a creator's own brand, a store,
  * or an agency's client — only the persona chip changes.
  */
-export function ProjectHero({ project, persona, className }: ProjectHeroProps) {
+export function ProjectHero({ project, persona, freshness, className }: ProjectHeroProps) {
   const [broken, setBroken] = useState(false)
 
   const src = avatarSrc(project.avatar_url || project.logo_url)
@@ -135,10 +130,20 @@ export function ProjectHero({ project, persona, className }: ProjectHeroProps) {
       </div>
 
       {/* Honesty line: every number above is a snapshot, and this says how old it is */}
-      <p className="mt-3 flex items-center gap-1.5 text-caption-2 text-alpha-60">
-        <Clock className="size-3 shrink-0" />
-        {updated ? `Data updated ${updated}` : 'No scraped data yet'}
-      </p>
+      {freshness ? (
+        <FreshnessChip
+          className="mt-3"
+          lastScrapedAt={project.last_scraped_at}
+          onRefresh={freshness.onRefresh}
+          poll={freshness.poll}
+          onRefreshed={freshness.onRefreshed}
+        />
+      ) : (
+        <p className="mt-3 flex items-center gap-1.5 text-caption-2 text-alpha-60">
+          <Clock className="size-3 shrink-0" />
+          {updated ? `Data updated ${updated}` : 'No scraped data yet'}
+        </p>
+      )}
     </div>
   )
 }

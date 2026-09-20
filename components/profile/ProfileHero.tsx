@@ -20,6 +20,8 @@ interface ProfileHeroProps {
   action?: React.ReactNode
   /** Shown under the badges, e.g. right after a successful track */
   note?: string | null
+  /** Data-freshness chip ("Updated 3 days ago · Refresh") */
+  freshness?: React.ReactNode
 }
 
 export function ProfileHero({
@@ -33,6 +35,7 @@ export function ProfileHero({
   tracked = false,
   action,
   note,
+  freshness,
 }: ProfileHeroProps) {
   const clean = handle.replace(/^@/, '')
   const href = profileUrl(clean, platform)
@@ -98,6 +101,8 @@ export function ProfileHero({
               {note}
             </p>
           )}
+
+          {freshness && <div className="mt-3">{freshness}</div>}
         </div>
       </div>
     </motion.section>
