@@ -7,6 +7,7 @@ import {
   FileText,
   Film,
   Image as ImageIcon,
+  Link2,
   Music,
   Paperclip,
   Plus,
@@ -19,7 +20,7 @@ import { DashboardShell } from '@/components/layout/DashboardShell'
 import { AiMark } from '@/components/ui/ai-mark'
 import { Spinner } from '@/components/ui/spinner'
 import { DraftCard, IdeaCard } from '@/components/studio/ArtifactCards'
-import { streamStudioMessage, uploadStudioReference } from '@/lib/studio-stream'
+import { addStudioLinkReference, streamStudioMessage, uploadStudioReference } from '@/lib/studio-stream'
 import { cn } from '@/lib/utils'
 import {
   createStudioSession,
@@ -54,13 +55,31 @@ const TOOL_LABEL: Record<string, string> = {
 
 const ACCEPT = 'image/*,video/*,audio/*,application/pdf,text/plain,text/markdown,.md,.txt,.csv'
 
+/** Instagram post/reel and TikTok video links become references, like uploads */
+const POST_URL_RE =
+  /https?:\/\/(?:[\w-]+\.)?(?:instagram\.com\/(?:p|reel|reels|tv)\/[\w-]+\/?|tiktok\.com\/[^\s"'<>]+)/gi
+
+function postUrlsIn(text: string): string[] {
+  return Array.from(new Set(text.match(POST_URL_RE) ?? []))
+}
+
+function shortUrl(url: string): string {
+  try {
+    const u = new URL(url)
+    const tail = u.pathname.replace(/\/+$/, '').split('/').filter(Boolean).slice(-2).join('/')
+    return `${u.hostname.replace(/^www\./, '')}/${tail}`
+  } catch {
+    return url
+  }
+}
+
 const KIND_ICON: Record<ReferenceKind, LucideIcon> = {
   image: ImageIcon,
   pdf: FileText,
   text: FileText,
   video: Film,
   audio: Music,
-  link: FileText,
+  link: Link2,
 }
 
 const KIND_VERB: Record<ReferenceKind, string> = {
@@ -69,7 +88,7 @@ const KIND_VERB: Record<ReferenceKind, string> = {
   text: 'Reading the text',
   video: 'Transcribing the video',
   audio: 'Transcribing the audio',
-  link: 'Reading the link',
+  link: 'Reading the post',
 }
 
 function kindOfFile(file: File): ReferenceKind {
@@ -225,11 +244,54 @@ function StudioContent() {
     [projectId, session],
   )
 
+  /** Fetch a post by link (caption, metrics, transcript) and resolve with its reference, or null. */
+  const addLink = useCallback(
+    async (url: string): Promise<StudioReference | null> => {
+      if (!session) return null
+      const localId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      setAttachments((prev) => [...prev, { localId, name: shortUrl(url), kind: 'link', status: 'uploading' }])
+      try {
+        const reference = await addStudioLinkReference(projectId, session.id, url)
+        setReferences((prev) => [...prev, reference])
+        setAttachments((prev) =>
+          prev.map((a) =>
+            a.localId === localId
+              ? reference.status === 'ready'
+                ? { ...a, name: reference.title, status: 'ready', reference }
+                : { ...a, status: 'failed', reference, error: reference.error ?? 'Could not read this post' }
+              : a,
+          ),
+        )
+        return reference.status === 'ready' ? reference : null
+      } catch (err) {
+        setAttachments((prev) =>
+          prev.map((a) =>
+            a.localId === localId
+              ? { ...a, status: 'failed', error: err instanceof Error ? err.message : 'Could not read this post' }
+              : a,
+          ),
+        )
+        return null
+      }
+    },
+    [projectId, session],
+  )
+
   const removeAttachment = useCallback((localId: string) => {
     setAttachments((prev) => prev.filter((a) => a.localId !== localId))
   }, [])
 
   const uploading = attachments.some((a) => a.status === 'uploading')
+
+  /** A pasted post link becomes a reference chip instead of text */
+  function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const text = e.clipboardData.getData('text').trim()
+    const urls = postUrlsIn(text)
+    if (urls.length === 1 && urls[0] === text) {
+      e.preventDefault()
+      void addLink(text)
+    }
+  }
 
   /* ── Sending ─────────────────────────────────────────────── */
 
@@ -237,17 +299,29 @@ function StudioContent() {
     async (text: string) => {
       const content = text.trim()
       if (!content || !session || busy || uploading) return
-      const ready = attachments.filter((a) => a.status === 'ready' && a.reference)
-      const referenceIds = ready.map((a) => a.reference!.id)
-      const chips: StudioArtifact[] = ready.map((a) => ({
-        type: 'reference' as const,
-        id: a.reference!.id,
-        title: a.reference!.title,
-        kind: a.reference!.kind,
-      }))
 
       setError(null)
       setBusy(true)
+
+      // Links typed into the message are read first, then attached like uploads
+      const attachedUrls = new Set(attachments.map((a) => a.reference?.source_url).filter(Boolean))
+      const linkUrls = postUrlsIn(content).filter((u) => !attachedUrls.has(u))
+      const linkRefs = (await Promise.all(linkUrls.map((u) => addLink(u)))).filter(
+        (r): r is StudioReference => r !== null,
+      )
+
+      const readyRefs = [
+        ...attachments.filter((a) => a.status === 'ready' && a.reference).map((a) => a.reference!),
+        ...linkRefs,
+      ]
+      const referenceIds = readyRefs.map((r) => r.id)
+      const chips: StudioArtifact[] = readyRefs.map((r) => ({
+        type: 'reference' as const,
+        id: r.id,
+        title: r.title,
+        kind: r.kind,
+      }))
+
       setInput('')
       setAttachments([])
       setMessages((prev) => [
@@ -316,7 +390,7 @@ function StudioContent() {
         )
       }
     },
-    [projectId, session, busy, uploading, attachments, language],
+    [projectId, session, busy, uploading, attachments, language, addLink],
   )
 
   const stop = useCallback(() => {
@@ -515,8 +589,9 @@ function StudioContent() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKey}
+              onPaste={handlePaste}
               rows={2}
-              placeholder="Tell Navix what you want to make — attach a photo, a PDF, a script or a video as an example…"
+              placeholder="Tell Navix what you want to make — paste a reel or TikTok link, or attach a photo, PDF, script or video…"
               className="w-full resize-none rounded-[12px] border border-alpha-10 bg-alpha-5/50 px-4 py-3 text-body-2 text-primary-900 outline-none transition-colors placeholder:text-alpha-30 focus:border-primary-900 focus:bg-white"
             />
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
@@ -541,6 +616,20 @@ function StudioContent() {
                 >
                   <Paperclip className="size-3.5" />
                   Attach
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = window.prompt('Paste an Instagram post/reel or TikTok video link')
+                    if (url && postUrlsIn(url).length === 1) void addLink(url.trim())
+                    else if (url) setError('That does not look like an Instagram post or TikTok video link.')
+                  }}
+                  disabled={busy || !session}
+                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-alpha-10 px-3 py-2 text-caption-1 font-medium text-alpha-60 transition-colors hover:border-primary-900 hover:text-primary-900 disabled:opacity-50"
+                  title="Add an Instagram or TikTok post by link"
+                >
+                  <Link2 className="size-3.5" />
+                  Link
                 </button>
                 <label className="flex items-center gap-2 text-caption-2 text-alpha-60">
                   Content in

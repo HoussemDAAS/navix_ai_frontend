@@ -68,6 +68,24 @@ export async function streamStudioMessage(
   }
 }
 
+/** A public Instagram/TikTok post by link. Resolves once caption, metrics and transcript are in. */
+export async function addStudioLinkReference(
+  projectId: string,
+  sessionId: string,
+  url: string,
+  signal?: AbortSignal,
+): Promise<StudioReference> {
+  const res = await fetch(`${API_URL}/projects/${projectId}/studio/sessions/${sessionId}/references/link`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+    body: JSON.stringify({ url }),
+    signal,
+  })
+  if (!res.ok) throw new Error(await errorMessage(res))
+  const json = (await res.json()) as { data: StudioReference }
+  return json.data
+}
+
 /** Upload one example (photo, PDF, text, video/audio). Resolves once the agent can read it. */
 export async function uploadStudioReference(
   projectId: string,
