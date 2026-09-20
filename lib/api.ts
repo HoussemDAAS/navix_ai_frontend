@@ -167,7 +167,28 @@ export interface StudioDraft {
   version?: number
 }
 
-export type StudioArtifact = ({ type: 'idea' } & StudioIdea) | ({ type: 'draft' } & StudioDraft)
+export type ReferenceKind = 'image' | 'pdf' | 'text' | 'video' | 'audio' | 'link'
+
+/** An example the user shared with the Studio: uploaded, read and summarized */
+export interface StudioReference {
+  id: string
+  project_id: string
+  session_id: string | null
+  kind: ReferenceKind
+  title: string
+  source_url: string | null
+  mime_type: string | null
+  size_bytes: number | null
+  status: 'processing' | 'ready' | 'failed'
+  summary: string | null
+  error: string | null
+  created_at: string
+}
+
+export type StudioArtifact =
+  | ({ type: 'idea' } & StudioIdea)
+  | ({ type: 'draft' } & StudioDraft)
+  | { type: 'reference'; id: string; title: string; kind: ReferenceKind }
 
 export interface StudioMessage {
   id: string
@@ -201,6 +222,12 @@ export function createStudioSession(projectId: string, contentLanguage?: string)
 export function getStudioMessages(projectId: string, sessionId: string) {
   return request<{ data: { session: StudioSession; messages: StudioMessage[] } }>(
     `/projects/${projectId}/studio/sessions/${sessionId}/messages`,
+  )
+}
+
+export function listStudioReferences(projectId: string, sessionId: string) {
+  return request<{ data: StudioReference[] }>(
+    `/projects/${projectId}/studio/sessions/${sessionId}/references`,
   )
 }
 

@@ -2,21 +2,36 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { ChevronDown, Plus, Send, Square } from 'lucide-react'
+import {
+  ChevronDown,
+  FileText,
+  Film,
+  Image as ImageIcon,
+  Music,
+  Paperclip,
+  Plus,
+  Send,
+  Square,
+  X,
+  type LucideIcon,
+} from 'lucide-react'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { AiMark } from '@/components/ui/ai-mark'
 import { Spinner } from '@/components/ui/spinner'
 import { DraftCard, IdeaCard } from '@/components/studio/ArtifactCards'
-import { streamStudioMessage } from '@/lib/studio-stream'
+import { streamStudioMessage, uploadStudioReference } from '@/lib/studio-stream'
 import { cn } from '@/lib/utils'
 import {
   createStudioSession,
   getStudioMessages,
+  listStudioReferences,
   listStudioSessions,
+  type ReferenceKind,
   type StudioArtifact,
   type StudioDraft,
   type StudioIdea,
   type StudioMessage,
+  type StudioReference,
   type StudioSession,
 } from '@/lib/api'
 
@@ -32,14 +47,65 @@ const STARTERS = [
 const TOOL_LABEL: Record<string, string> = {
   search_my_posts: 'Reading your posts',
   search_field: 'Looking at your field',
+  read_reference: 'Reading your reference',
   propose_ideas: 'Shaping ideas',
   write_draft: 'Writing',
+}
+
+const ACCEPT = 'image/*,video/*,audio/*,application/pdf,text/plain,text/markdown,.md,.txt,.csv'
+
+const KIND_ICON: Record<ReferenceKind, LucideIcon> = {
+  image: ImageIcon,
+  pdf: FileText,
+  text: FileText,
+  video: Film,
+  audio: Music,
+  link: FileText,
+}
+
+const KIND_VERB: Record<ReferenceKind, string> = {
+  image: 'Looking at the photo',
+  pdf: 'Reading the PDF',
+  text: 'Reading the text',
+  video: 'Transcribing the video',
+  audio: 'Transcribing the audio',
+  link: 'Reading the link',
+}
+
+function kindOfFile(file: File): ReferenceKind {
+  const mime = file.type.toLowerCase()
+  const ext = file.name.toLowerCase().split('.').pop() ?? ''
+  if (mime.startsWith('image/')) return 'image'
+  if (mime === 'application/pdf' || ext === 'pdf') return 'pdf'
+  if (mime.startsWith('video/')) return 'video'
+  if (mime.startsWith('audio/')) return 'audio'
+  return 'text'
+}
+
+/** Sessions keep the default title until the first message names them */
+function sessionLabel(s: StudioSession): string {
+  if (s.title && s.title !== 'New session') return s.title
+  return `Session · ${new Date(s.created_at).toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })}`
 }
 
 interface PendingTurn {
   text: string
   artifacts: StudioArtifact[]
   tool: string | null
+}
+
+interface Attachment {
+  localId: string
+  name: string
+  kind: ReferenceKind
+  status: 'uploading' | 'ready' | 'failed'
+  reference?: StudioReference
+  error?: string
 }
 
 function StudioContent() {
@@ -49,23 +115,32 @@ function StudioContent() {
   const [sessions, setSessions] = useState<StudioSession[]>([])
   const [session, setSession] = useState<StudioSession | null>(null)
   const [messages, setMessages] = useState<StudioMessage[]>([])
+  const [references, setReferences] = useState<StudioReference[]>([])
   const [pending, setPending] = useState<PendingTurn | null>(null)
+  const [attachments, setAttachments] = useState<Attachment[]>([])
   const [input, setInput] = useState('')
   const [language, setLanguage] = useState(LANGUAGES[0])
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useState<'ideas' | 'drafts'>('ideas')
+  const [tab, setTab] = useState<'ideas' | 'drafts' | 'references'>('ideas')
+  const [dragging, setDragging] = useState(false)
 
   const abortRef = useRef<AbortController | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const composerRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const openSession = useCallback(
     async (id: string) => {
-      const res = await getStudioMessages(projectId, id)
+      const [res, refs] = await Promise.all([
+        getStudioMessages(projectId, id),
+        listStudioReferences(projectId, id).catch(() => ({ data: [] as StudioReference[] })),
+      ])
       setSession(res.data.session)
       setMessages(res.data.messages)
+      setReferences(refs.data ?? [])
+      setAttachments([])
       setLanguage(res.data.session.content_language || LANGUAGES[0])
     },
     [projectId],
@@ -76,6 +151,8 @@ function StudioContent() {
     setSessions((prev) => [res.data.session, ...prev])
     setSession(res.data.session)
     setMessages(res.data.messages)
+    setReferences([])
+    setAttachments([])
   }, [projectId, language])
 
   // Boot: reopen the latest session, or start the first one
@@ -111,16 +188,78 @@ function StudioContent() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [messages, pending?.text, pending?.artifacts.length])
 
+  /* ── Attachments ─────────────────────────────────────────── */
+
+  const addFiles = useCallback(
+    (files: FileList | File[]) => {
+      if (!session) return
+      const list = Array.from(files)
+      for (const file of list) {
+        const localId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        const kind = kindOfFile(file)
+        setAttachments((prev) => [...prev, { localId, name: file.name, kind, status: 'uploading' }])
+        uploadStudioReference(projectId, session.id, file)
+          .then((reference) => {
+            setReferences((prev) => [...prev, reference])
+            setAttachments((prev) =>
+              prev.map((a) =>
+                a.localId === localId
+                  ? reference.status === 'ready'
+                    ? { ...a, status: 'ready', reference }
+                    : { ...a, status: 'failed', reference, error: reference.error ?? 'Could not read this file' }
+                  : a,
+              ),
+            )
+          })
+          .catch((err) => {
+            setAttachments((prev) =>
+              prev.map((a) =>
+                a.localId === localId
+                  ? { ...a, status: 'failed', error: err instanceof Error ? err.message : 'Upload failed' }
+                  : a,
+              ),
+            )
+          })
+      }
+    },
+    [projectId, session],
+  )
+
+  const removeAttachment = useCallback((localId: string) => {
+    setAttachments((prev) => prev.filter((a) => a.localId !== localId))
+  }, [])
+
+  const uploading = attachments.some((a) => a.status === 'uploading')
+
+  /* ── Sending ─────────────────────────────────────────────── */
+
   const send = useCallback(
     async (text: string) => {
       const content = text.trim()
-      if (!content || !session || busy) return
+      if (!content || !session || busy || uploading) return
+      const ready = attachments.filter((a) => a.status === 'ready' && a.reference)
+      const referenceIds = ready.map((a) => a.reference!.id)
+      const chips: StudioArtifact[] = ready.map((a) => ({
+        type: 'reference' as const,
+        id: a.reference!.id,
+        title: a.reference!.title,
+        kind: a.reference!.kind,
+      }))
+
       setError(null)
       setBusy(true)
       setInput('')
+      setAttachments([])
       setMessages((prev) => [
         ...prev,
-        { id: `local-${Date.now()}`, session_id: session.id, role: 'user', content, artifacts: [], created_at: new Date().toISOString() },
+        {
+          id: `local-${Date.now()}`,
+          session_id: session.id,
+          role: 'user',
+          content,
+          artifacts: chips,
+          created_at: new Date().toISOString(),
+        },
       ])
       const turn: PendingTurn = { text: '', artifacts: [], tool: null }
       setPending({ ...turn })
@@ -131,7 +270,7 @@ function StudioContent() {
         await streamStudioMessage(
           projectId,
           session.id,
-          { content, language },
+          { content, language, reference_ids: referenceIds.length > 0 ? referenceIds : undefined },
           (event) => {
             if (event.type === 'token') {
               turn.text += event.text
@@ -177,7 +316,7 @@ function StudioContent() {
         )
       }
     },
-    [projectId, session, busy, language],
+    [projectId, session, busy, uploading, attachments, language],
   )
 
   const stop = useCallback(() => {
@@ -206,12 +345,19 @@ function StudioContent() {
   const drafts = artifacts.filter((a): a is { type: 'draft' } & StudioDraft => a.type === 'draft').reverse()
 
   const showStarters = messages.length <= 1 && !pending
+  const canSend = !busy && !uploading && input.trim().length > 0
 
   function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       void send(input)
     }
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    setDragging(false)
+    if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files)
   }
 
   if (loading) {
@@ -233,18 +379,18 @@ function StudioContent() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {sessions.length > 0 && session && (
+          {sessions.length > 1 && session && (
             <div className="relative">
               <select
                 value={session.id}
                 onChange={(e) => void openSession(e.target.value)}
                 disabled={busy}
                 className="appearance-none rounded-[10px] border border-alpha-10 bg-white py-2 pl-3 pr-8 text-caption-1 font-medium text-primary-900 outline-none focus:border-primary-900"
-                aria-label="Session"
+                aria-label="Previous sessions"
               >
                 {sessions.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.title}
+                    {sessionLabel(s)}
                   </option>
                 ))}
               </select>
@@ -265,7 +411,18 @@ function StudioContent() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         {/* Conversation */}
-        <div className="flex h-[calc(100vh-14rem)] min-h-[520px] flex-col rounded-[20px] border border-alpha-10 bg-white shadow-card">
+        <div
+          onDragOver={(e) => {
+            e.preventDefault()
+            setDragging(true)
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+          className={cn(
+            'flex h-[calc(100vh-14rem)] min-h-[520px] flex-col rounded-[20px] border bg-white shadow-card transition-colors',
+            dragging ? 'border-primary-900 bg-secondary-50' : 'border-alpha-10',
+          )}
+        >
           <div className="flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-6">
             {messages.map((m) => (
               <MessageRow key={m.id} message={m} projectId={projectId} onDraft={draftIdea} onRevise={reviseDraft} busy={busy} />
@@ -285,9 +442,9 @@ function StudioContent() {
                   {pending.artifacts.map((a, i) =>
                     a.type === 'idea' ? (
                       <IdeaCard key={`p-${i}`} idea={a} onDraft={draftIdea} disabled />
-                    ) : (
+                    ) : a.type === 'draft' ? (
                       <DraftCard key={`p-${i}`} draft={a} projectId={projectId} onRevise={reviseDraft} disabled />
-                    ),
+                    ) : null,
                   )}
                 </div>
               </div>
@@ -318,33 +475,95 @@ function StudioContent() {
 
           {/* Composer */}
           <div className="border-t border-alpha-10 p-3 sm:p-4">
+            {attachments.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-2">
+                {attachments.map((a) => {
+                  const Icon = KIND_ICON[a.kind]
+                  return (
+                    <span
+                      key={a.localId}
+                      className={cn(
+                        'inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-caption-2',
+                        a.status === 'failed'
+                          ? 'border-destructive-200 bg-destructive-50 text-destructive-600'
+                          : a.status === 'ready'
+                            ? 'border-success-300 bg-success-50 text-success-700'
+                            : 'border-alpha-10 bg-alpha-5 text-alpha-60',
+                      )}
+                      title={a.error}
+                    >
+                      {a.status === 'uploading' ? <Spinner size="sm" /> : <Icon className="size-3 shrink-0" />}
+                      <span className="truncate">{a.name}</span>
+                      <span className="shrink-0 text-alpha-40">
+                        {a.status === 'uploading' ? `· ${KIND_VERB[a.kind]}…` : a.status === 'ready' ? '· ready' : '· failed'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(a.localId)}
+                        className="ml-0.5 rounded-full p-0.5 hover:bg-white"
+                        aria-label={`Remove ${a.name}`}
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </span>
+                  )
+                })}
+              </div>
+            )}
             <textarea
               ref={composerRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKey}
               rows={2}
-              placeholder="Tell Navix what you want to make, or paste a reference…"
+              placeholder="Tell Navix what you want to make — attach a photo, a PDF, a script or a video as an example…"
               className="w-full resize-none rounded-[12px] border border-alpha-10 bg-alpha-5/50 px-4 py-3 text-body-2 text-primary-900 outline-none transition-colors placeholder:text-alpha-30 focus:border-primary-900 focus:bg-white"
             />
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-              <label className="flex items-center gap-2 text-caption-2 text-alpha-60">
-                Content in
-                <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  className="rounded-[8px] border border-alpha-10 bg-white px-2 py-1 text-caption-2 font-medium text-primary-900 outline-none focus:border-primary-900"
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept={ACCEPT}
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files?.length) addFiles(e.target.files)
+                    e.target.value = ''
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={busy || !session}
+                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-alpha-10 px-3 py-2 text-caption-1 font-medium text-alpha-60 transition-colors hover:border-primary-900 hover:text-primary-900 disabled:opacity-50"
+                  title="Attach a photo, PDF, text or video as an example"
                 >
-                  {LANGUAGES.map((l) => (
-                    <option key={l} value={l}>
-                      {l}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  <Paperclip className="size-3.5" />
+                  Attach
+                </button>
+                <label className="flex items-center gap-2 text-caption-2 text-alpha-60">
+                  Content in
+                  <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="rounded-[8px] border border-alpha-10 bg-white px-2 py-1 text-caption-2 font-medium text-primary-900 outline-none focus:border-primary-900"
+                  >
+                    {LANGUAGES.map((l) => (
+                      <option key={l} value={l}>
+                        {l}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
               <div className="flex items-center gap-2">
                 {busy && (
-                  <button type="button" onClick={stop} className="inline-flex items-center gap-1.5 rounded-[10px] border border-alpha-10 px-3 py-2 text-caption-1 font-medium text-alpha-60 hover:border-primary-900 hover:text-primary-900">
+                  <button
+                    type="button"
+                    onClick={stop}
+                    className="inline-flex items-center gap-1.5 rounded-[10px] border border-alpha-10 px-3 py-2 text-caption-1 font-medium text-alpha-60 hover:border-primary-900 hover:text-primary-900"
+                  >
                     <Square className="size-3.5" />
                     Stop
                   </button>
@@ -352,7 +571,8 @@ function StudioContent() {
                 <button
                   type="button"
                   onClick={() => void send(input)}
-                  disabled={busy || !input.trim()}
+                  disabled={!canSend}
+                  title={uploading ? 'Waiting for your attachments to be read' : undefined}
                   className="inline-flex items-center gap-2 rounded-[12px] bg-secondary-300 px-4 py-2 text-caption-1 font-semibold text-primary-900 border border-primary-900 shadow-signature transition-all duration-200 hover:bg-secondary-400 hover:shadow-[0px_3px_0px_0px_#191a23] active:shadow-none active:translate-y-[2px] disabled:opacity-50 disabled:pointer-events-none"
                 >
                   <Send className="size-3.5" />
@@ -366,19 +586,22 @@ function StudioContent() {
         {/* Canvas */}
         <aside className="self-start rounded-[20px] border border-alpha-10 bg-white p-4 shadow-card lg:sticky lg:top-6">
           <div className="mb-3 flex items-center gap-1 rounded-[10px] bg-alpha-5 p-1">
-            {(['ideas', 'drafts'] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTab(t)}
-                className={cn(
-                  'flex-1 rounded-[8px] px-3 py-1.5 text-caption-1 font-semibold capitalize transition-colors',
-                  tab === t ? 'bg-white text-primary-900 shadow-card' : 'text-alpha-60 hover:text-primary-900',
-                )}
-              >
-                {t} <span className="text-alpha-40">{t === 'ideas' ? ideas.length : drafts.length}</span>
-              </button>
-            ))}
+            {(['ideas', 'drafts', 'references'] as const).map((t) => {
+              const count = t === 'ideas' ? ideas.length : t === 'drafts' ? drafts.length : references.length
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTab(t)}
+                  className={cn(
+                    'flex-1 rounded-[8px] px-2 py-1.5 text-caption-1 font-semibold capitalize transition-colors',
+                    tab === t ? 'bg-white text-primary-900 shadow-card' : 'text-alpha-60 hover:text-primary-900',
+                  )}
+                >
+                  {t} <span className="text-alpha-40">{count}</span>
+                </button>
+              )
+            })}
           </div>
           <div className="max-h-[calc(100vh-18rem)] space-y-3 overflow-y-auto pr-1">
             {tab === 'ideas' &&
@@ -395,8 +618,44 @@ function StudioContent() {
                   <DraftCard key={draft.id ?? i} draft={draft} projectId={projectId} onRevise={reviseDraft} compact disabled={busy} />
                 ))
               ))}
+            {tab === 'references' &&
+              (references.length === 0 ? (
+                <p className="px-1 py-6 text-center text-caption-1 text-alpha-60">
+                  Photos, PDFs, scripts and videos you attach are read once and stay available to Navix here.
+                </p>
+              ) : (
+                references.map((r) => <ReferenceCard key={r.id} reference={r} />)
+              ))}
           </div>
         </aside>
+      </div>
+    </div>
+  )
+}
+
+function ReferenceCard({ reference }: { reference: StudioReference }) {
+  const Icon = KIND_ICON[reference.kind]
+  return (
+    <div className="rounded-[14px] border border-alpha-10 bg-white p-3 shadow-card">
+      <div className="flex items-start gap-2.5">
+        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-alpha-5 text-alpha-60">
+          <Icon className="size-3.5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-caption-1 font-semibold text-primary-900">{reference.title}</p>
+          <p
+            className={cn(
+              'mt-0.5 text-caption-2',
+              reference.status === 'failed' ? 'text-destructive-600' : 'text-alpha-60',
+            )}
+          >
+            {reference.status === 'ready'
+              ? reference.summary || 'Read.'
+              : reference.status === 'failed'
+                ? reference.error || 'Could not be read.'
+                : 'Reading…'}
+          </p>
+        </div>
       </div>
     </div>
   )
@@ -416,11 +675,25 @@ function MessageRow({
   busy: boolean
 }) {
   if (message.role === 'user') {
+    const attached = (message.artifacts ?? []).filter((a) => a.type === 'reference')
     return (
-      <div className="flex justify-end">
+      <div className="flex flex-col items-end gap-1.5">
         <p className="max-w-[85%] whitespace-pre-wrap rounded-[16px] rounded-br-[4px] bg-primary-900 px-4 py-2.5 text-body-2 leading-relaxed text-white">
           {message.content}
         </p>
+        {attached.length > 0 && (
+          <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
+            {attached.map((a) => {
+              const Icon = a.type === 'reference' ? KIND_ICON[a.kind] : FileText
+              return (
+                <span key={a.id} className="inline-flex items-center gap-1 rounded-full border border-alpha-10 bg-alpha-5 px-2 py-0.5 text-caption-2 text-alpha-60">
+                  <Icon className="size-3" />
+                  {a.title}
+                </span>
+              )
+            })}
+          </div>
+        )}
       </div>
     )
   }
@@ -434,9 +707,9 @@ function MessageRow({
         {(message.artifacts ?? []).map((a, i) =>
           a.type === 'idea' ? (
             <IdeaCard key={a.id ?? `i-${i}`} idea={a} onDraft={onDraft} disabled={busy} />
-          ) : (
+          ) : a.type === 'draft' ? (
             <DraftCard key={a.id ?? `d-${i}`} draft={a} projectId={projectId} onRevise={onRevise} disabled={busy} />
-          ),
+          ) : null,
         )}
       </div>
     </div>
