@@ -5,7 +5,6 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   FileText,
-  Sparkles,
   AlertCircle,
   RefreshCw,
   CheckCircle2,
@@ -19,6 +18,7 @@ import {
   Compass,
 } from 'lucide-react'
 import { DashboardShell } from '@/components/layout/DashboardShell'
+import { AiMark } from '@/components/ui/ai-mark'
 import { Spinner } from '@/components/ui/spinner'
 import { LimeButton } from '@/components/onboarding/LimeButton'
 import { cn } from '@/lib/utils'
@@ -712,9 +712,7 @@ function DraftEditor({
       {/* Brand Memory feedback notes */}
       <div className="rounded-[20px] border border-secondary-200 bg-gradient-to-br from-secondary-50 to-white p-5 sm:p-6">
         <div className="flex items-center gap-2.5 mb-3">
-          <div className="h-7 w-7 rounded-full bg-secondary-300 flex items-center justify-center">
-            <Sparkles className="size-3.5 text-primary-900" />
-          </div>
+          <AiMark size="sm" />
           <div className="flex-1">
             <p className="text-caption-1 font-semibold text-primary-900">
               Brand Memory feedback

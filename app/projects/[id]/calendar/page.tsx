@@ -8,7 +8,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
-  Sparkles,
   X,
   Trash2,
   Instagram,
@@ -19,6 +18,7 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { DashboardShell } from '@/components/layout/DashboardShell'
+import { AiMark } from '@/components/ui/ai-mark'
 import { Spinner } from '@/components/ui/spinner'
 import { LimeButton } from '@/components/onboarding/LimeButton'
 import { ExportMenu } from '@/components/calendar/ExportMenu'
@@ -330,9 +330,7 @@ export default function CalendarPage() {
           >
             <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
               <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-full bg-secondary-300 flex items-center justify-center">
-                  <Sparkles className="size-4 text-primary-900" />
-                </div>
+                <AiMark size="sm" />
                 <div>
                   <p className="text-caption-1 font-semibold text-primary-900">
                     {unscheduledApproved.length} approved draft

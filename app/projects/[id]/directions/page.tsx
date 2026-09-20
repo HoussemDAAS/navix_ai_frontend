@@ -19,6 +19,7 @@ import {
   Clapperboard,
 } from 'lucide-react'
 import { DashboardShell } from '@/components/layout/DashboardShell'
+import { AiMark } from '@/components/ui/ai-mark'
 import { Spinner } from '@/components/ui/spinner'
 import { LimeButton } from '@/components/onboarding/LimeButton'
 import { cn } from '@/lib/utils'
@@ -504,9 +505,7 @@ export default function DirectionsPage() {
                 >
                   <div className="max-w-[680px] mx-auto pointer-events-auto rounded-[18px] border border-primary-900 bg-white shadow-signature p-3 sm:p-4 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-9 w-9 shrink-0 rounded-full bg-secondary-300 flex items-center justify-center">
-                        <Sparkles className="size-4 text-primary-900" />
-                      </div>
+                      <AiMark />
                       <div className="min-w-0">
                         <p className="text-caption-1 font-semibold text-primary-900 truncate">
                           {selectionCount} direction{selectionCount !== 1 ? 's' : ''} selected

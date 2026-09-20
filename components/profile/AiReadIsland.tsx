@@ -1,8 +1,9 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Sparkles, RefreshCw, AlertTriangle, Lock } from 'lucide-react'
+import { RefreshCw, AlertTriangle, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { AiMark } from '@/components/ui/ai-mark'
 import type { InsightStatus } from '@/lib/api'
 import { fmtDate } from '@/components/profile/utils'
 
@@ -44,9 +45,7 @@ export function AiReadIsland({
     >
       <div className="flex items-center justify-between gap-3 border-b border-secondary-200 px-5 py-4">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-secondary-300 border border-primary-900">
-            <Sparkles className="size-4 text-primary-900" />
-          </div>
+          <AiMark />
           <div className="min-w-0">
             <p className="text-body-2 font-semibold text-primary-900">Navix AI read</p>
             <p className="text-caption-2 text-alpha-60 truncate">

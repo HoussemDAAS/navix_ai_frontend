@@ -13,12 +13,12 @@ import {
   ArrowRight,
   CheckCircle2,
   RefreshCw,
-  Sparkles,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { useWorkspace } from '@/components/layout/WorkspaceContext'
 import { ProjectHero } from '@/components/project/ProjectHero'
+import { AiMark } from '@/components/ui/ai-mark'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import { avatarSrc } from '@/lib/avatar'
@@ -452,9 +452,7 @@ function OverviewContent() {
             {/* Widget header */}
             <div className="flex items-center justify-between gap-3 border-b border-alpha-10 px-5 py-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-secondary-300 border border-primary-900">
-                  <Sparkles className="size-4 text-primary-900" />
-                </div>
+                <AiMark />
                 <div>
                   <p className="text-body-2 font-semibold text-primary-900">Navix Intelligence</p>
                   <p className="text-caption-2 text-alpha-60">

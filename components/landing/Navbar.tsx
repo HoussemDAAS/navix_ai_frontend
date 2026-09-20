@@ -1,9 +1,10 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import Link from "next/link"
-import { Menu, X } from "lucide-react"
+import { ArrowRight, Menu, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { supabase } from "@/lib/supabase/client"
 
 const navLinks = [
   { label: "About us", href: "#about" },
@@ -11,13 +12,33 @@ const navLinks = [
   { label: "Pricing", href: "#pricing" },
 ]
 
+const limeCta =
+  "inline-flex items-center justify-center gap-2 rounded-[12px] bg-secondary-300 px-4 py-2.5 text-body-2 font-medium text-primary-900 border border-primary-900 shadow-signature transition-all duration-200 hover:bg-secondary-400 hover:shadow-[0px_3px_0px_0px_#191a23] active:shadow-none active:translate-y-[2px]"
+
 export function Navbar({ className }: { className?: string }) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  // A signed-in visitor is sent home instead of being sold the product again
+  const [signedIn, setSignedIn] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!cancelled) setSignedIn(Boolean(data.session))
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const homeHref = signedIn ? "/dashboard" : "/"
 
   return (
     <header className={cn("w-full bg-white", className)}>
       <nav className="mx-auto flex max-w-[1340px] items-center justify-between pl-3 pr-3 py-3 sm:px-6 sm:py-4 md:px-12 lg:px-16">
-        <Link href="/" className="shrink-0">
+        <Link href={homeHref} className="shrink-0">
           <img src="/logo_navix.svg" alt="Navix" className="h-5 w-auto sm:h-8" />
         </Link>
 
@@ -34,18 +55,24 @@ export function Navbar({ className }: { className?: string }) {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Link
-            href="/login"
-            className="inline-flex items-center justify-center rounded-[12px] px-4 py-2.5 text-body-2 font-medium text-primary-900 transition-colors hover:bg-alpha-5"
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/signup"
-            className="inline-flex items-center justify-center rounded-[12px] bg-secondary-300 px-4 py-2.5 text-body-2 font-medium text-primary-900 border border-primary-900 shadow-signature transition-all duration-200 hover:bg-secondary-400 hover:shadow-[0px_3px_0px_0px_#191a23] active:shadow-none active:translate-y-[2px]"
-          >
-            Try Free Trial
-          </Link>
+          {signedIn ? (
+            <Link href="/dashboard" className={limeCta}>
+              Open dashboard
+              <ArrowRight className="size-4" />
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center rounded-[12px] px-4 py-2.5 text-body-2 font-medium text-primary-900 transition-colors hover:bg-alpha-5"
+              >
+                Sign In
+              </Link>
+              <Link href="/signup" className={limeCta}>
+                Try Free Trial
+              </Link>
+            </>
+          )}
         </div>
 
         <button
@@ -69,20 +96,33 @@ export function Navbar({ className }: { className?: string }) {
               {link.label}
             </Link>
           ))}
-          <Link
-            href="/login"
-            className="flex w-full items-center justify-center rounded-[12px] px-4 py-3 text-body-2 font-medium text-primary-900 border border-alpha-10"
-            onClick={() => setMobileOpen(false)}
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/signup"
-            className="flex w-full items-center justify-center rounded-[12px] bg-secondary-300 px-4 py-3 text-body-2 font-medium text-primary-900 border border-primary-900 shadow-signature"
-            onClick={() => setMobileOpen(false)}
-          >
-            Try Free Trial
-          </Link>
+          {signedIn ? (
+            <Link
+              href="/dashboard"
+              className="flex w-full items-center justify-center gap-2 rounded-[12px] bg-secondary-300 px-4 py-3 text-body-2 font-medium text-primary-900 border border-primary-900 shadow-signature"
+              onClick={() => setMobileOpen(false)}
+            >
+              Open dashboard
+              <ArrowRight className="size-4" />
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="flex w-full items-center justify-center rounded-[12px] px-4 py-3 text-body-2 font-medium text-primary-900 border border-alpha-10"
+                onClick={() => setMobileOpen(false)}
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/signup"
+                className="flex w-full items-center justify-center rounded-[12px] bg-secondary-300 px-4 py-3 text-body-2 font-medium text-primary-900 border border-primary-900 shadow-signature"
+                onClick={() => setMobileOpen(false)}
+              >
+                Try Free Trial
+              </Link>
+            </>
+          )}
         </div>
       )}
     </header>

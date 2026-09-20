@@ -13,7 +13,8 @@ export default function OnboardingLayout({ children }: OnboardingLayoutProps) {
 
       {/* Top nav. Compact: the logo, and a quiet sign-out on the far right */}
       <nav className="mx-auto flex max-w-[1340px] items-center justify-between px-5 sm:px-6 md:px-12 lg:px-16 py-5">
-        <Link href="/" className="shrink-0 inline-flex items-center gap-2">
+        {/* Signed-in users go home, never back to the landing page */}
+        <Link href="/dashboard" className="shrink-0 inline-flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo_navix.svg"

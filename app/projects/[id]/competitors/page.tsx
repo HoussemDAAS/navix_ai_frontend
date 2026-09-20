@@ -3,13 +3,26 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowRight, Plus, ChevronDown, RefreshCw, Search, Sparkles } from 'lucide-react'
+import {
+  ArrowRight,
+  Ban,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  Users,
+} from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ProgressBar } from '@/components/onboarding/ProgressBar'
+import { DashboardShell } from '@/components/layout/DashboardShell'
+import { AiMark } from '@/components/ui/ai-mark'
+import { StatTiles, type StatTileData } from '@/components/dashboard/StatTiles'
 import { CompetitorCard } from '@/components/competitors/CompetitorCard'
 import { CompetitorCardSkeleton } from '@/components/competitors/CompetitorCardSkeleton'
 import { AddCompetitorModal } from '@/components/competitors/AddCompetitorModal'
-import { ValidationProgress } from '@/components/competitors/ValidationProgress'
+import { relativeTime } from '@/lib/relative-time'
+import { cn } from '@/lib/utils'
 import {
   getCompetitors,
   updateCompetitor,
@@ -21,7 +34,8 @@ import {
 } from '@/lib/api'
 
 const INITIAL_VISIBLE = 6
-const REQUIRED_VALIDATIONS = 3
+/** Tracked accounts needed before market analysis has a field to measure */
+const ANALYSIS_READY_AT = 3
 const POLL_MS = 4000
 
 /** Map used by CompetitorCard */
@@ -64,6 +78,7 @@ function mapCompetitor(c: Competitor, knownIds: Set<string> | null): MappedCompe
   }
   const tags: string[] = []
   if (c.discovery_method === 'seed') tags.push('Your pick')
+  if (c.discovery_method === 'manual') tags.push('Added by you')
   if (c.discovery_method === 'expand') {
     const m = c.inclusion_reason?.match(/Similar to @([A-Za-z0-9._-]+)/)
     tags.push(m ? `Similar to @${m[1]}` : 'Similar to a tracked account')
@@ -97,9 +112,38 @@ const STAGE_LABEL: Record<string, string> = {
   done: 'Done',
 }
 
-type PageState = 'loading' | 'ready' | 'empty' | 'error'
+const ctaClasses =
+  'inline-flex items-center justify-center gap-2 rounded-[12px] bg-secondary-300 px-4 py-2.5 text-caption-1 font-medium text-primary-900 border border-primary-900 shadow-signature transition-all duration-200 hover:bg-secondary-400 hover:shadow-[0px_3px_0px_0px_#191a23] active:shadow-none active:translate-y-[2px] disabled:opacity-50 disabled:pointer-events-none'
+const secondaryClasses =
+  'inline-flex items-center justify-center gap-2 rounded-[12px] border border-alpha-10 bg-white px-4 py-2.5 text-caption-1 font-medium text-alpha-60 transition-all duration-200 hover:border-primary-900 hover:text-primary-900 disabled:opacity-50 disabled:pointer-events-none'
 
-export default function CompetitorsPage() {
+type PageState = 'loading' | 'ready' | 'error'
+
+function Section({
+  title,
+  count,
+  hint,
+  children,
+}: {
+  title: string
+  count: number
+  hint?: string
+  children: React.ReactNode
+}) {
+  return (
+    <section>
+      <div className="mb-3">
+        <h2 className="text-subheadline font-semibold text-primary-900">
+          {title} <span className="font-medium text-alpha-40">{count}</span>
+        </h2>
+        {hint && <p className="mt-0.5 text-caption-1 text-alpha-60">{hint}</p>}
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
+  )
+}
+
+function CompetitorsContent() {
   const params = useParams()
   const projectId = params.id as string
 
@@ -107,9 +151,9 @@ export default function CompetitorsPage() {
   const [competitors, setCompetitors] = useState<MappedCompetitor[]>([])
   const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set())
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set())
-  const [showAll, setShowAll] = useState(false)
+  const [showAllFound, setShowAllFound] = useState(false)
+  const [showDismissed, setShowDismissed] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
-  const [celebrateAt3, setCelebrateAt3] = useState(false)
   const [discovery, setDiscovery] = useState<DiscoveryStatus | null>(null)
   const [retrying, setRetrying] = useState(false)
   const [pollExhausted, setPollExhausted] = useState(false)
@@ -135,12 +179,8 @@ export default function CompetitorsPage() {
     ])
     if (statusRes) setDiscovery(statusRes.data)
     const list = listRes.data ?? []
-    if (list.length > 0) {
-      applyCompetitors(list)
-      setPageState('ready')
-    } else {
-      setPageState('empty')
-    }
+    applyCompetitors(list)
+    setPageState('ready')
     return { count: list.length, status: statusRes?.data ?? null }
   }, [projectId, applyCompetitors])
 
@@ -150,9 +190,10 @@ export default function CompetitorsPage() {
   }, [refresh])
 
   // Poll while discovery/expansion runs, or while the list is still empty
+  const isEmpty = competitors.length === 0
   useEffect(() => {
-    if (pageState === 'loading' || pageState === 'error') return
-    const shouldPoll = discoveryActive || (pageState === 'empty' && !pollExhausted)
+    if (pageState !== 'ready') return
+    const shouldPoll = discoveryActive || (isEmpty && !pollExhausted)
     if (!shouldPoll) return
     const timer = setInterval(async () => {
       try {
@@ -168,7 +209,7 @@ export default function CompetitorsPage() {
       } catch { /* keep polling */ }
     }, POLL_MS)
     return () => clearInterval(timer)
-  }, [pageState, discoveryActive, pollExhausted, refresh])
+  }, [pageState, discoveryActive, isEmpty, pollExhausted, refresh])
 
   // Once a run finishes, promote the "new" arrivals to known on the next run
   useEffect(() => {
@@ -207,34 +248,8 @@ export default function CompetitorsPage() {
     }
   }, [projectId])
 
-  const visibleCompetitors = useMemo(() => {
-    const filtered = competitors.filter((c) => !dismissedIds.has(c.id))
-    // Tracked first, then newest arrivals, then by confidence
-    const sorted = [...filtered].sort((a, b) => {
-      const t = Number(trackedIds.has(b.id)) - Number(trackedIds.has(a.id))
-      if (t !== 0) return t
-      const n = Number(b.isNew) - Number(a.isNew)
-      if (n !== 0) return n
-      return b.confidenceScore - a.confidenceScore
-    })
-    return showAll ? sorted : sorted.slice(0, INITIAL_VISIBLE)
-  }, [competitors, dismissedIds, trackedIds, showAll])
-
-  const totalActive = competitors.filter((c) => !dismissedIds.has(c.id)).length
-  const hiddenCount = totalActive - Math.min(INITIAL_VISIBLE, totalActive)
-  const validatedCount = trackedIds.size + dismissedIds.size
-  const isUnlocked = trackedIds.size >= REQUIRED_VALIDATIONS
-
   const handleTrack = useCallback((id: string) => {
-    setTrackedIds((prev) => {
-      const next = new Set(prev)
-      next.add(id)
-      if (next.size === REQUIRED_VALIDATIONS) {
-        setCelebrateAt3(true)
-        setTimeout(() => setCelebrateAt3(false), 1000)
-      }
-      return next
-    })
+    setTrackedIds((prev) => new Set(prev).add(id))
     // Persist + start the content scrape + "find similar accounts" refinement.
     // Optimistic: revert the local state if the server rejects it.
     const tracked = competitors.find((c) => c.id === id)
@@ -261,11 +276,7 @@ export default function CompetitorsPage() {
   }, [projectId, competitors])
 
   const handleDismiss = useCallback((id: string) => {
-    setDismissedIds((prev) => {
-      const next = new Set(prev)
-      next.add(id)
-      return next
-    })
+    setDismissedIds((prev) => new Set(prev).add(id))
     updateCompetitor(projectId, id, { rejectedByUser: true }).catch(() => {
       setDismissedIds((prev) => {
         const next = new Set(prev)
@@ -275,13 +286,51 @@ export default function CompetitorsPage() {
     })
   }, [projectId])
 
-  const Nav = (
-    <nav className="mx-auto max-w-[1340px] px-5 sm:px-6 md:px-12 lg:px-16 py-4">
-      <Link href="/" className="shrink-0 inline-block">
-        <img src="/logo_navix.svg" alt="Navix" className="h-5 w-auto sm:h-6" />
-      </Link>
-    </nav>
+  const handleRestore = useCallback((id: string) => {
+    setDismissedIds((prev) => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+    updateCompetitor(projectId, id, { rejectedByUser: false }).catch(() => {
+      setDismissedIds((prev) => new Set(prev).add(id))
+    })
+  }, [projectId])
+
+  const tracked = useMemo(
+    () => competitors.filter((c) => trackedIds.has(c.id) && !dismissedIds.has(c.id)),
+    [competitors, trackedIds, dismissedIds],
   )
+  const dismissed = useMemo(
+    () => competitors.filter((c) => dismissedIds.has(c.id)),
+    [competitors, dismissedIds],
+  )
+  const found = useMemo(() => {
+    const rest = competitors.filter((c) => !trackedIds.has(c.id) && !dismissedIds.has(c.id))
+    // Newest arrivals first, then by confidence
+    return [...rest].sort((a, b) => {
+      const n = Number(b.isNew) - Number(a.isNew)
+      if (n !== 0) return n
+      return b.confidenceScore - a.confidenceScore
+    })
+  }, [competitors, trackedIds, dismissedIds])
+  const visibleFound = showAllFound ? found : found.slice(0, INITIAL_VISIBLE)
+  const hiddenFound = found.length - visibleFound.length
+
+  const lastRun = discovery?.updated_at ? relativeTime(discovery.updated_at) : null
+
+  const tiles: StatTileData[] = [
+    { key: 'tracked', label: 'Tracked', value: tracked.length, hint: 'benchmarked by you', icon: Users },
+    { key: 'found', label: 'Found by Navix', value: found.length, hint: 'waiting for your call', icon: Search },
+    { key: 'dismissed', label: 'Dismissed', value: dismissed.length, hint: 'kept out of the analysis', icon: Ban },
+  ]
+
+  const subtitle =
+    tracked.length > 0
+      ? `${tracked.length} tracked · ${found.length} more found by Navix`
+      : found.length > 0
+        ? `${found.length} accounts found — track the ones worth benchmarking`
+        : 'The accounts competing for your audience, found and ranked by Navix.'
 
   const progressPanel = discovery && (discoveryActive || discovery.status === 'failed') && (
     <motion.div
@@ -290,20 +339,20 @@ export default function CompetitorsPage() {
       className="mb-6 rounded-[16px] border border-secondary-400 bg-secondary-50 px-5 py-4"
     >
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-secondary-300 border border-primary-900">
-          {discovery.status === 'failed' ? <RefreshCw className="size-4 text-primary-900" /> : (
-            <motion.div animate={{ rotate: 360 }} transition={{ duration: 2.4, repeat: Infinity, ease: 'linear' }}>
-              <Sparkles className="size-4 text-primary-900" />
-            </motion.div>
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
+        {discovery.status === 'failed' ? (
+          <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-[10px] border border-alpha-10 bg-white">
+            <RefreshCw className="size-4 text-primary-900" />
+          </span>
+        ) : (
+          <AiMark spinning className="mt-0.5" />
+        )}
+        <div className="min-w-0 flex-1">
           <p className="text-body-2 font-semibold text-primary-900">
             {discovery.status === 'failed'
               ? 'Discovery hit a problem'
               : discovery.message || STAGE_LABEL[discovery.stage ?? ''] || 'Working…'}
           </p>
-          <p className="text-caption-2 text-alpha-60 mt-0.5">
+          <p className="mt-0.5 text-caption-2 text-alpha-60">
             {discovery.status === 'failed'
               ? discovery.error || 'Try again in a moment.'
               : [
@@ -313,7 +362,7 @@ export default function CompetitorsPage() {
                 ].filter(Boolean).join(' · ') || 'We take our time here — good matches beat fast ones.'}
           </p>
           {discovery.status !== 'failed' && (
-            <div className="mt-2.5 h-1.5 w-full rounded-full bg-alpha-10 overflow-hidden">
+            <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-alpha-10">
               <motion.div
                 className="h-full rounded-full bg-primary-900"
                 animate={{ width: `${Math.max(4, discovery.progress)}%` }}
@@ -328,203 +377,285 @@ export default function CompetitorsPage() {
 
   if (pageState === 'loading') {
     return (
-      <main className="min-h-screen bg-white">
-        {Nav}
-        <ProgressBar percent={90} />
-        <div className="mx-auto max-w-[1240px] px-5 sm:px-6 md:px-12 lg:px-16 pt-8 pb-16">
-          <div className="mb-8 space-y-2">
-            <div className="h-8 w-72 rounded bg-alpha-10 animate-pulse" />
-            <div className="h-5 w-96 rounded bg-alpha-5 animate-pulse" />
-          </div>
-          <div className="flex-1 max-w-[740px] space-y-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <CompetitorCardSkeleton key={i} index={i} />
-            ))}
-          </div>
+      <div className="px-5 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 max-w-[1100px]">
+        <div className="mb-8 space-y-2">
+          <div className="h-8 w-56 animate-pulse rounded bg-alpha-10" />
+          <div className="h-5 w-80 animate-pulse rounded bg-alpha-5" />
         </div>
-      </main>
-    )
-  }
-
-  if (pageState === 'empty') {
-    return (
-      <main className="min-h-screen bg-white">
-        {Nav}
-        <div className="mx-auto max-w-[1240px] px-5 sm:px-6 md:px-12 lg:px-16 pt-12 pb-16">
-          <div className="max-w-[740px] mx-auto">{progressPanel}</div>
-          <div className="flex flex-col items-center text-center">
-            {!discoveryActive && (pollExhausted || (discovery && discovery.status !== 'pending' && discovery.status !== 'active')) ? (
-              <>
-                <div className="w-14 h-14 rounded-full bg-secondary-50 border border-secondary-300 flex items-center justify-center mb-4">
-                  <Search className="size-6 text-primary-btn" />
-                </div>
-                <h2 className="text-h5 font-bold text-primary-900 mb-2">
-                  {discovery?.status === 'failed' ? 'Discovery hit a problem' : 'No competitors yet'}
-                </h2>
-                <p className="text-body-2 text-alpha-60 mb-6 max-w-md">
-                  {discovery?.status === 'failed'
-                    ? discovery.error || 'Something went wrong during the search.'
-                    : 'Run discovery: we read your profile, scan Instagram & TikTok, analyze every account we find, and keep only the ones worth benchmarking. It takes a few minutes.'}
-                </p>
-                <button
-                  type="button"
-                  onClick={handleRetryDiscovery}
-                  disabled={retrying}
-                  className="inline-flex items-center gap-2 rounded-[12px] bg-secondary-300 px-5 py-3 text-body-2 font-medium text-primary-900 border border-primary-900 shadow-signature transition-all duration-200 hover:bg-secondary-400 hover:shadow-[0px_3px_0px_0px_#191a23] active:shadow-none active:translate-y-[2px] disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  <RefreshCw className={`size-4 ${retrying ? 'animate-spin' : ''}`} />
-                  {retrying ? 'Launching search...' : discovery?.status === 'idle' ? 'Find my competitors' : 'Search again'}
-                </button>
-              </>
-            ) : (
-              <>
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-                  className="w-14 h-14 rounded-full bg-secondary-50 border border-secondary-300 flex items-center justify-center mb-4"
-                >
-                  <Search className="size-6 text-primary-btn" />
-                </motion.div>
-                <h2 className="text-h5 font-bold text-primary-900 mb-2">Finding your real competitors</h2>
-                <p className="text-body-2 text-alpha-60 mb-2 max-w-md">
-                  We read your profile, search Instagram &amp; TikTok, analyze every account we find, and only keep the ones worth benchmarking. This takes a few minutes.
-                </p>
-                <p className="text-caption-1 text-alpha-30">This page updates automatically.</p>
-              </>
-            )}
-          </div>
+        <div className="max-w-[760px] space-y-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <CompetitorCardSkeleton key={i} index={i} />
+          ))}
         </div>
-      </main>
+      </div>
     )
   }
 
   if (pageState === 'error') {
     return (
-      <main className="min-h-screen bg-white">
-        {Nav}
-        <div className="mx-auto max-w-[1240px] px-5 sm:px-6 md:px-12 lg:px-16 pt-20 pb-16">
-          <div className="flex flex-col items-center text-center">
-            <h2 className="text-h5 font-bold text-primary-900 mb-2">Something went wrong</h2>
-            <p className="text-body-2 text-alpha-60 mb-6 max-w-md">We couldn&apos;t load your competitor results.</p>
-            <button
-              type="button"
-              onClick={() => { setPageState('loading'); refresh().catch(() => setPageState('error')) }}
-              className="inline-flex items-center gap-2 rounded-[12px] bg-secondary-300 px-5 py-3 text-body-2 font-medium text-primary-900 border border-primary-900 shadow-signature transition-all duration-200 hover:bg-secondary-400 hover:shadow-[0px_3px_0px_0px_#191a23] active:shadow-none active:translate-y-[2px]"
-            >
-              <RefreshCw className="size-4" />
-              Try again
-            </button>
-          </div>
+      <div className="px-5 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 max-w-[1100px]">
+        <div className="flex flex-col items-center py-20 text-center">
+          <h2 className="mb-2 text-h5 font-bold text-primary-900">Something went wrong</h2>
+          <p className="mb-6 max-w-md text-body-2 text-alpha-60">We couldn&apos;t load your competitors.</p>
+          <button
+            type="button"
+            onClick={() => { setPageState('loading'); refresh().catch(() => setPageState('error')) }}
+            className={ctaClasses}
+          >
+            <RefreshCw className="size-4" />
+            Try again
+          </button>
         </div>
-      </main>
+      </div>
     )
   }
 
+  const searchLabel = retrying
+    ? 'Launching search...'
+    : discovery?.status === 'idle' || !discovery
+      ? 'Find my competitors'
+      : 'Search again'
+
   return (
-    <main className="min-h-screen bg-white">
-      {Nav}
-      <ProgressBar percent={100} />
-
-      <div className="mx-auto max-w-[1240px] px-5 sm:px-6 md:px-12 lg:px-16 pt-4 sm:pt-8 pb-16">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 sm:mb-8">
-          <h1 className="text-h5 sm:text-h4 lg:text-h3 font-bold text-primary-btn mb-2">
-            {trackedIds.size > 0 ? 'Refining your competitor map.' : 'We found your real competitors.'}
-          </h1>
-          <p className="text-body-2 sm:text-body-1 text-alpha-60 max-w-[640px]">
-            {trackedIds.size > 0
-              ? 'Every account you track teaches us what to look for — similar accounts appear below. Aim for your best 5.'
-              : 'Each account was analyzed against your profile. Track the ones you want to benchmark; we’ll find more like them.'}
-          </p>
-        </motion.div>
-
-        <div className="flex flex-col gap-6">
-          <div className="flex-1 max-w-[740px]">
-            {progressPanel}
-
-            <div className="flex items-end justify-between gap-4 mb-4">
-              <ValidationProgress
-                validated={validatedCount}
-                total={competitors.length}
-                celebrate={celebrateAt3}
-                className="flex-1"
-              />
-              <button
-                type="button"
-                onClick={handleRetryDiscovery}
-                disabled={retrying || discoveryActive}
-                title="Run discovery again with your current profile"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-caption-1 font-medium text-alpha-60 border border-alpha-10 hover:border-primary-900 hover:text-primary-900 hover:bg-alpha-5 transition-all duration-150 shrink-0 disabled:opacity-50 disabled:pointer-events-none"
-              >
-                <RefreshCw className={`size-3.5 ${retrying ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">Search again</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAdd(true)}
-                title="Add a competitor by profile link"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-caption-1 font-medium text-primary-900 bg-secondary-300 border border-primary-900 hover:bg-secondary-400 transition-all duration-150 shrink-0"
-              >
-                <Plus className="size-3.5" />
-                <span className="hidden sm:inline">Add</span>
-              </button>
-            </div>
-
-            <AddCompetitorModal
-              projectId={projectId}
-              open={showAdd}
-              onClose={() => setShowAdd(false)}
-              onAdded={() => { void refresh() }}
-            />
-
-            <div className="space-y-4">
-              <AnimatePresence mode="popLayout">
-                {visibleCompetitors.map((competitor, i) => (
-                  <CompetitorCard
-                    key={competitor.id}
-                    competitor={competitor}
-                    projectId={projectId}
-                    index={i}
-                    isTracked={trackedIds.has(competitor.id)}
-                    isDismissed={dismissedIds.has(competitor.id)}
-                    onTrack={handleTrack}
-                    onDismiss={handleDismiss}
-                  />
-                ))}
-              </AnimatePresence>
-            </div>
-
-            {!showAll && hiddenCount > 0 && (
-              <motion.button
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                type="button"
-                onClick={() => setShowAll(true)}
-                className="flex items-center gap-1.5 mx-auto mt-6 text-caption-1 font-medium text-alpha-60 hover:text-primary-900 transition-colors"
-              >
-                Show {hiddenCount} more competitors
-                <ChevronDown className="size-3.5" />
-              </motion.button>
-            )}
-
-            {isUnlocked && (
-              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mt-8">
-                <Link
-                  href={`/projects/${projectId}/analysis`}
-                  className="flex w-full sm:w-auto sm:inline-flex items-center justify-center gap-2 rounded-[12px] bg-secondary-300 px-6 py-3 text-body-2 font-medium text-primary-900 border border-primary-900 shadow-signature transition-all duration-200 hover:bg-secondary-400 hover:shadow-[0px_3px_0px_0px_#191a23] active:shadow-none active:translate-y-[2px]"
-                >
-                  Run Market Analysis
-                  <ArrowRight className="size-4" />
-                </Link>
-                <p className="mt-2 text-caption-1 text-alpha-60 text-center sm:text-left">
-                  We&apos;re scraping your tracked competitors&apos; content — the analysis
-                  gets smarter as their posts come in (~1–2 min).
-                </p>
-              </motion.div>
-            )}
-          </div>
+    <div className="px-5 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 max-w-[1100px]">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+      >
+        <div className="min-w-0">
+          <h1 className="text-h5 font-bold text-primary-900 sm:text-h4">Competitors</h1>
+          <p className="mt-1.5 text-body-2 text-alpha-60">{subtitle}</p>
         </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={handleRetryDiscovery}
+            disabled={retrying || discoveryActive}
+            title="Run discovery again with your current profile"
+            className={secondaryClasses}
+          >
+            <RefreshCw className={cn('size-4', retrying && 'animate-spin')} />
+            {searchLabel}
+          </button>
+          <button type="button" onClick={() => setShowAdd(true)} className={ctaClasses}>
+            <Plus className="size-4" />
+            Add
+          </button>
+        </div>
+      </motion.div>
+
+      {progressPanel}
+
+      {!isEmpty && <StatTiles tiles={tiles} loading={false} skeletonCount={3} className="mb-6" />}
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+        {/* Lists */}
+        <div className="min-w-0 space-y-8">
+          {isEmpty ? (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center rounded-[20px] border border-alpha-10 bg-alpha-5/50 px-6 py-14 text-center"
+            >
+              {discoveryActive ? (
+                <>
+                  <AiMark size="lg" spinning className="mb-4" />
+                  <h2 className="mb-2 text-h5 font-bold text-primary-900">Finding your real competitors</h2>
+                  <p className="mb-2 max-w-md text-body-2 text-alpha-60">
+                    We read your profile, search Instagram &amp; TikTok, analyze every account we find, and only keep the ones worth benchmarking. This takes a few minutes.
+                  </p>
+                  <p className="text-caption-1 text-alpha-30">This page updates automatically.</p>
+                </>
+              ) : (
+                <>
+                  <div className="mb-4 flex size-14 items-center justify-center rounded-full border border-secondary-300 bg-secondary-50">
+                    <Search className="size-6 text-primary-btn" />
+                  </div>
+                  <h2 className="mb-2 text-h5 font-bold text-primary-900">
+                    {discovery?.status === 'failed' ? 'Discovery hit a problem' : 'No competitors yet'}
+                  </h2>
+                  <p className="mb-6 max-w-md text-body-2 text-alpha-60">
+                    {discovery?.status === 'failed'
+                      ? discovery.error || 'Something went wrong during the search.'
+                      : 'Run discovery: we read your profile, scan Instagram & TikTok, analyze every account we find, and keep only the ones worth benchmarking. It takes a few minutes.'}
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <button type="button" onClick={handleRetryDiscovery} disabled={retrying} className={ctaClasses}>
+                      <RefreshCw className={cn('size-4', retrying && 'animate-spin')} />
+                      {searchLabel}
+                    </button>
+                    <button type="button" onClick={() => setShowAdd(true)} className={secondaryClasses}>
+                      <Plus className="size-4" />
+                      Add by link
+                    </button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          ) : (
+            <>
+              {tracked.length > 0 && (
+                <Section
+                  title="Tracked"
+                  count={tracked.length}
+                  hint="Their posts feed your analysis and are refreshed automatically."
+                >
+                  <AnimatePresence mode="popLayout">
+                    {tracked.map((competitor, i) => (
+                      <CompetitorCard
+                        key={competitor.id}
+                        competitor={competitor}
+                        projectId={projectId}
+                        index={i}
+                        isTracked
+                        isDismissed={false}
+                        onTrack={handleTrack}
+                        onDismiss={handleDismiss}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </Section>
+              )}
+
+              {found.length > 0 && (
+                <Section
+                  title="Found by Navix"
+                  count={found.length}
+                  hint={
+                    tracked.length > 0
+                      ? 'Every account you track teaches Navix what to look for — similar accounts land here.'
+                      : 'Each account was judged against your profile. Track the ones you want to benchmark.'
+                  }
+                >
+                  <AnimatePresence mode="popLayout">
+                    {visibleFound.map((competitor, i) => (
+                      <CompetitorCard
+                        key={competitor.id}
+                        competitor={competitor}
+                        projectId={projectId}
+                        index={i}
+                        isTracked={false}
+                        isDismissed={false}
+                        onTrack={handleTrack}
+                        onDismiss={handleDismiss}
+                      />
+                    ))}
+                  </AnimatePresence>
+                  {hiddenFound > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllFound(true)}
+                      className="mx-auto flex items-center gap-1.5 pt-2 text-caption-1 font-medium text-alpha-60 transition-colors hover:text-primary-900"
+                    >
+                      Show {hiddenFound} more
+                      <ChevronDown className="size-3.5" />
+                    </button>
+                  )}
+                </Section>
+              )}
+
+              {tracked.length === 0 && found.length === 0 && (
+                <p className="rounded-[16px] border border-alpha-10 bg-alpha-5/50 px-5 py-4 text-body-2 text-alpha-60">
+                  Everything found so far was dismissed — search again, add an account by link, or restore one below.
+                </p>
+              )}
+
+              {dismissed.length > 0 && (
+                <section>
+                  <button
+                    type="button"
+                    onClick={() => setShowDismissed((v) => !v)}
+                    className="flex items-center gap-1.5 text-caption-1 font-medium text-alpha-60 transition-colors hover:text-primary-900"
+                  >
+                    {showDismissed ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+                    Dismissed ({dismissed.length})
+                  </button>
+                  {showDismissed && (
+                    <ul className="mt-3 divide-y divide-alpha-10 rounded-[12px] border border-alpha-10 bg-white">
+                      {dismissed.map((c) => (
+                        <li key={c.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                          <span className="truncate text-caption-1 text-primary-900">
+                            {c.handle} <span className="text-alpha-40">· {c.platform}</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRestore(c.id)}
+                            className="inline-flex shrink-0 items-center gap-1 text-caption-2 font-semibold text-primary-900 hover:underline"
+                          >
+                            <RotateCcw className="size-3" />
+                            Restore
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Rail */}
+        <aside className="space-y-4 self-start lg:sticky lg:top-6">
+          <div className="rounded-[16px] border border-alpha-10 bg-white p-5 shadow-card">
+            <div className="flex items-center gap-3">
+              <AiMark spinning={discoveryActive} />
+              <div className="min-w-0">
+                <p className="text-body-2 font-semibold text-primary-900">Navix discovery</p>
+                <p className="text-caption-2 text-alpha-60">
+                  {discoveryActive ? 'Running now' : lastRun ? `Last run ${lastRun}` : 'Not run yet'}
+                </p>
+              </div>
+            </div>
+            <p className="mt-3 text-caption-1 leading-relaxed text-alpha-60">
+              Navix reads your profile, plans a search from your bio, scans Instagram and TikTok,
+              then judges every account against your brand. Tracking one teaches it what to look for.
+            </p>
+          </div>
+
+          {tracked.length >= ANALYSIS_READY_AT ? (
+            <div className="rounded-[16px] border border-secondary-400 bg-secondary-50 p-5">
+              <p className="text-body-2 font-semibold text-primary-900">Ready for market analysis</p>
+              <p className="mt-1 text-caption-1 text-alpha-60">
+                {tracked.length} tracked accounts give Navix a field to measure you against.
+              </p>
+              <Link href={`/projects/${projectId}/analysis`} className={cn(ctaClasses, 'mt-3 w-full')}>
+                Open market analysis
+                <ArrowRight className="size-4" />
+              </Link>
+            </div>
+          ) : (
+            !isEmpty && (
+              <div className="rounded-[16px] border border-alpha-10 bg-alpha-5/50 p-5">
+                <p className="text-body-2 font-semibold text-primary-900">
+                  Track {ANALYSIS_READY_AT - tracked.length} more to unlock analysis
+                </p>
+                <p className="mt-1 text-caption-1 text-alpha-60">
+                  Aim for your best five — quality beats quantity here.
+                </p>
+              </div>
+            )
+          )}
+        </aside>
       </div>
-    </main>
+
+      <AddCompetitorModal
+        projectId={projectId}
+        open={showAdd}
+        onClose={() => setShowAdd(false)}
+        onAdded={() => { void refresh() }}
+      />
+    </div>
+  )
+}
+
+export default function CompetitorsPage() {
+  return (
+    <DashboardShell>
+      <CompetitorsContent />
+    </DashboardShell>
   )
 }

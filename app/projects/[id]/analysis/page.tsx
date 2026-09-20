@@ -2,12 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
   BarChart3,
   Sparkles,
   TrendingUp,
-  Target,
   Lightbulb,
   Clock,
   Play,
@@ -16,6 +15,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { DashboardShell } from '@/components/layout/DashboardShell'
+import { AiMark } from '@/components/ui/ai-mark'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import {
@@ -266,9 +266,7 @@ export default function AnalysisPage() {
               className="rounded-[20px] bg-gradient-to-br from-secondary-50 to-white border border-secondary-200 p-6 sm:p-7"
             >
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="h-7 w-7 rounded-full bg-secondary-300 flex items-center justify-center">
-                  <Sparkles className="size-3.5 text-primary-900" />
-                </div>
+                <AiMark size="sm" />
                 <h2 className="text-subheadline font-bold text-primary-900">Key Takeaways</h2>
               </div>
               <ul className="space-y-2.5">
