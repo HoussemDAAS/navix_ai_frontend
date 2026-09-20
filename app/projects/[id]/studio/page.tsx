@@ -1,0 +1,452 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useParams } from 'next/navigation'
+import { ChevronDown, Plus, Send, Square } from 'lucide-react'
+import { DashboardShell } from '@/components/layout/DashboardShell'
+import { AiMark } from '@/components/ui/ai-mark'
+import { Spinner } from '@/components/ui/spinner'
+import { DraftCard, IdeaCard } from '@/components/studio/ArtifactCards'
+import { streamStudioMessage } from '@/lib/studio-stream'
+import { cn } from '@/lib/utils'
+import {
+  createStudioSession,
+  getStudioMessages,
+  listStudioSessions,
+  type StudioArtifact,
+  type StudioDraft,
+  type StudioIdea,
+  type StudioMessage,
+  type StudioSession,
+} from '@/lib/api'
+
+const LANGUAGES = ['same as my posts', 'English', 'French', 'Arabic', 'Tunisian Arabic (Derja)']
+
+const STARTERS = [
+  'Ideas for this week',
+  'Turn my best post into a series',
+  'Write a reel script about my journey',
+  'A caption for a photo I will post today',
+]
+
+const TOOL_LABEL: Record<string, string> = {
+  search_my_posts: 'Reading your posts',
+  search_field: 'Looking at your field',
+  propose_ideas: 'Shaping ideas',
+  write_draft: 'Writing',
+}
+
+interface PendingTurn {
+  text: string
+  artifacts: StudioArtifact[]
+  tool: string | null
+}
+
+function StudioContent() {
+  const params = useParams()
+  const projectId = params.id as string
+
+  const [sessions, setSessions] = useState<StudioSession[]>([])
+  const [session, setSession] = useState<StudioSession | null>(null)
+  const [messages, setMessages] = useState<StudioMessage[]>([])
+  const [pending, setPending] = useState<PendingTurn | null>(null)
+  const [input, setInput] = useState('')
+  const [language, setLanguage] = useState(LANGUAGES[0])
+  const [busy, setBusy] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [tab, setTab] = useState<'ideas' | 'drafts'>('ideas')
+
+  const abortRef = useRef<AbortController | null>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const composerRef = useRef<HTMLTextAreaElement>(null)
+
+  const openSession = useCallback(
+    async (id: string) => {
+      const res = await getStudioMessages(projectId, id)
+      setSession(res.data.session)
+      setMessages(res.data.messages)
+      setLanguage(res.data.session.content_language || LANGUAGES[0])
+    },
+    [projectId],
+  )
+
+  const newSession = useCallback(async () => {
+    const res = await createStudioSession(projectId, language)
+    setSessions((prev) => [res.data.session, ...prev])
+    setSession(res.data.session)
+    setMessages(res.data.messages)
+  }, [projectId, language])
+
+  // Boot: reopen the latest session, or start the first one
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await listStudioSessions(projectId)
+        if (cancelled) return
+        const list = res.data ?? []
+        setSessions(list)
+        if (list.length > 0) {
+          await openSession(list[0].id)
+        } else {
+          const created = await createStudioSession(projectId)
+          if (cancelled) return
+          setSessions([created.data.session])
+          setSession(created.data.session)
+          setMessages(created.data.messages)
+        }
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Could not open the Studio.')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [projectId, openSession])
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [messages, pending?.text, pending?.artifacts.length])
+
+  const send = useCallback(
+    async (text: string) => {
+      const content = text.trim()
+      if (!content || !session || busy) return
+      setError(null)
+      setBusy(true)
+      setInput('')
+      setMessages((prev) => [
+        ...prev,
+        { id: `local-${Date.now()}`, session_id: session.id, role: 'user', content, artifacts: [], created_at: new Date().toISOString() },
+      ])
+      const turn: PendingTurn = { text: '', artifacts: [], tool: null }
+      setPending({ ...turn })
+      const controller = new AbortController()
+      abortRef.current = controller
+
+      try {
+        await streamStudioMessage(
+          projectId,
+          session.id,
+          { content, language },
+          (event) => {
+            if (event.type === 'token') {
+              turn.text += event.text
+              turn.tool = null
+            } else if (event.type === 'tool') {
+              turn.tool = event.name
+            } else if (event.type === 'ideas') {
+              turn.artifacts.push(...event.ideas.map((i) => ({ type: 'idea' as const, ...i })))
+              turn.tool = null
+            } else if (event.type === 'draft') {
+              turn.artifacts.push({ type: 'draft' as const, ...event.draft })
+              turn.tool = null
+            } else if (event.type === 'error') {
+              setError(event.message)
+            }
+            setPending({ ...turn, artifacts: [...turn.artifacts] })
+          },
+          controller.signal,
+        )
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          setError(err instanceof Error ? err.message : 'The Studio could not answer.')
+        }
+      } finally {
+        if (turn.text || turn.artifacts.length > 0) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `local-a-${Date.now()}`,
+              session_id: session.id,
+              role: 'assistant',
+              content: turn.text,
+              artifacts: turn.artifacts,
+              created_at: new Date().toISOString(),
+            },
+          ])
+        }
+        setPending(null)
+        setBusy(false)
+        abortRef.current = null
+        setSessions((prev) =>
+          prev.map((s) => (s.id === session.id && s.title === 'New session' ? { ...s, title: content.slice(0, 60) } : s)),
+        )
+      }
+    },
+    [projectId, session, busy, language],
+  )
+
+  const stop = useCallback(() => {
+    abortRef.current?.abort()
+  }, [])
+
+  const draftIdea = useCallback(
+    (idea: StudioIdea) => {
+      void send(`Write a draft for the idea "${idea.title_pillar}" as a ${idea.format}.`)
+    },
+    [send],
+  )
+
+  const reviseDraft = useCallback((draft: StudioDraft) => {
+    setInput(`Revise "${draft.idea_title}" v${draft.version ?? 1}: `)
+    composerRef.current?.focus()
+  }, [])
+
+  const artifacts = useMemo(() => {
+    const all: StudioArtifact[] = []
+    for (const m of messages) all.push(...(m.artifacts ?? []))
+    if (pending) all.push(...pending.artifacts)
+    return all
+  }, [messages, pending])
+  const ideas = artifacts.filter((a): a is { type: 'idea' } & StudioIdea => a.type === 'idea')
+  const drafts = artifacts.filter((a): a is { type: 'draft' } & StudioDraft => a.type === 'draft').reverse()
+
+  const showStarters = messages.length <= 1 && !pending
+
+  function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      void send(input)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-5 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-8 max-w-[1240px]">
+      {/* Header */}
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-h5 font-bold text-primary-900 sm:text-h4">Studio</h1>
+          <p className="mt-1 text-body-2 text-alpha-60">
+            Brainstorm with Navix. Ideas and drafts land in your libraries as you go.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {sessions.length > 0 && session && (
+            <div className="relative">
+              <select
+                value={session.id}
+                onChange={(e) => void openSession(e.target.value)}
+                disabled={busy}
+                className="appearance-none rounded-[10px] border border-alpha-10 bg-white py-2 pl-3 pr-8 text-caption-1 font-medium text-primary-900 outline-none focus:border-primary-900"
+                aria-label="Session"
+              >
+                {sessions.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.title}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-alpha-40" />
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => void newSession()}
+            disabled={busy}
+            className="inline-flex items-center gap-1.5 rounded-[10px] border border-primary-900 bg-white px-3 py-2 text-caption-1 font-semibold text-primary-900 shadow-signature transition-all hover:bg-secondary-50 disabled:opacity-50"
+          >
+            <Plus className="size-3.5" />
+            New session
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        {/* Conversation */}
+        <div className="flex h-[calc(100vh-14rem)] min-h-[520px] flex-col rounded-[20px] border border-alpha-10 bg-white shadow-card">
+          <div className="flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-6">
+            {messages.map((m) => (
+              <MessageRow key={m.id} message={m} projectId={projectId} onDraft={draftIdea} onRevise={reviseDraft} busy={busy} />
+            ))}
+
+            {pending && (
+              <div className="flex gap-3">
+                <AiMark size="sm" spinning className="mt-0.5" />
+                <div className="min-w-0 flex-1 space-y-3">
+                  {pending.text && (
+                    <p className="whitespace-pre-wrap text-body-2 leading-relaxed text-primary-900">{pending.text}</p>
+                  )}
+                  {pending.tool && (
+                    <p className="text-caption-1 text-alpha-60">{TOOL_LABEL[pending.tool] ?? 'Working'}…</p>
+                  )}
+                  {!pending.text && !pending.tool && <p className="text-caption-1 text-alpha-60">Thinking…</p>}
+                  {pending.artifacts.map((a, i) =>
+                    a.type === 'idea' ? (
+                      <IdeaCard key={`p-${i}`} idea={a} onDraft={draftIdea} disabled />
+                    ) : (
+                      <DraftCard key={`p-${i}`} draft={a} projectId={projectId} onRevise={reviseDraft} disabled />
+                    ),
+                  )}
+                </div>
+              </div>
+            )}
+
+            {showStarters && (
+              <div className="flex flex-wrap gap-2 pl-10">
+                {STARTERS.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => void send(s)}
+                    className="rounded-full border border-alpha-10 bg-alpha-5 px-3 py-1.5 text-caption-1 font-medium text-primary-900 transition-colors hover:border-primary-900 hover:bg-white"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {error && (
+              <p className="rounded-[12px] border border-destructive-200 bg-destructive-50 px-4 py-3 text-caption-1 text-destructive-600">
+                {error}
+              </p>
+            )}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Composer */}
+          <div className="border-t border-alpha-10 p-3 sm:p-4">
+            <textarea
+              ref={composerRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKey}
+              rows={2}
+              placeholder="Tell Navix what you want to make, or paste a reference…"
+              className="w-full resize-none rounded-[12px] border border-alpha-10 bg-alpha-5/50 px-4 py-3 text-body-2 text-primary-900 outline-none transition-colors placeholder:text-alpha-30 focus:border-primary-900 focus:bg-white"
+            />
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+              <label className="flex items-center gap-2 text-caption-2 text-alpha-60">
+                Content in
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="rounded-[8px] border border-alpha-10 bg-white px-2 py-1 text-caption-2 font-medium text-primary-900 outline-none focus:border-primary-900"
+                >
+                  {LANGUAGES.map((l) => (
+                    <option key={l} value={l}>
+                      {l}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="flex items-center gap-2">
+                {busy && (
+                  <button type="button" onClick={stop} className="inline-flex items-center gap-1.5 rounded-[10px] border border-alpha-10 px-3 py-2 text-caption-1 font-medium text-alpha-60 hover:border-primary-900 hover:text-primary-900">
+                    <Square className="size-3.5" />
+                    Stop
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void send(input)}
+                  disabled={busy || !input.trim()}
+                  className="inline-flex items-center gap-2 rounded-[12px] bg-secondary-300 px-4 py-2 text-caption-1 font-semibold text-primary-900 border border-primary-900 shadow-signature transition-all duration-200 hover:bg-secondary-400 hover:shadow-[0px_3px_0px_0px_#191a23] active:shadow-none active:translate-y-[2px] disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  <Send className="size-3.5" />
+                  Send
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Canvas */}
+        <aside className="self-start rounded-[20px] border border-alpha-10 bg-white p-4 shadow-card lg:sticky lg:top-6">
+          <div className="mb-3 flex items-center gap-1 rounded-[10px] bg-alpha-5 p-1">
+            {(['ideas', 'drafts'] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTab(t)}
+                className={cn(
+                  'flex-1 rounded-[8px] px-3 py-1.5 text-caption-1 font-semibold capitalize transition-colors',
+                  tab === t ? 'bg-white text-primary-900 shadow-card' : 'text-alpha-60 hover:text-primary-900',
+                )}
+              >
+                {t} <span className="text-alpha-40">{t === 'ideas' ? ideas.length : drafts.length}</span>
+              </button>
+            ))}
+          </div>
+          <div className="max-h-[calc(100vh-18rem)] space-y-3 overflow-y-auto pr-1">
+            {tab === 'ideas' &&
+              (ideas.length === 0 ? (
+                <p className="px-1 py-6 text-center text-caption-1 text-alpha-60">Ideas Navix proposes in this session collect here.</p>
+              ) : (
+                ideas.map((idea, i) => <IdeaCard key={idea.id ?? i} idea={idea} onDraft={draftIdea} compact disabled={busy} />)
+              ))}
+            {tab === 'drafts' &&
+              (drafts.length === 0 ? (
+                <p className="px-1 py-6 text-center text-caption-1 text-alpha-60">Drafts appear here and in your Drafts library.</p>
+              ) : (
+                drafts.map((draft, i) => (
+                  <DraftCard key={draft.id ?? i} draft={draft} projectId={projectId} onRevise={reviseDraft} compact disabled={busy} />
+                ))
+              ))}
+          </div>
+        </aside>
+      </div>
+    </div>
+  )
+}
+
+function MessageRow({
+  message,
+  projectId,
+  onDraft,
+  onRevise,
+  busy,
+}: {
+  message: StudioMessage
+  projectId: string
+  onDraft: (idea: StudioIdea) => void
+  onRevise: (draft: StudioDraft) => void
+  busy: boolean
+}) {
+  if (message.role === 'user') {
+    return (
+      <div className="flex justify-end">
+        <p className="max-w-[85%] whitespace-pre-wrap rounded-[16px] rounded-br-[4px] bg-primary-900 px-4 py-2.5 text-body-2 leading-relaxed text-white">
+          {message.content}
+        </p>
+      </div>
+    )
+  }
+  return (
+    <div className="flex gap-3">
+      <AiMark size="sm" className="mt-0.5" />
+      <div className="min-w-0 flex-1 space-y-3">
+        {message.content && (
+          <p className="whitespace-pre-wrap text-body-2 leading-relaxed text-primary-900">{message.content}</p>
+        )}
+        {(message.artifacts ?? []).map((a, i) =>
+          a.type === 'idea' ? (
+            <IdeaCard key={a.id ?? `i-${i}`} idea={a} onDraft={onDraft} disabled={busy} />
+          ) : (
+            <DraftCard key={a.id ?? `d-${i}`} draft={a} projectId={projectId} onRevise={onRevise} disabled={busy} />
+          ),
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default function StudioPage() {
+  return (
+    <DashboardShell>
+      <StudioContent />
+    </DashboardShell>
+  )
+}

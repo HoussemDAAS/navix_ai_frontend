@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Lightbulb,
   LogOut,
+  MessagesSquare,
   Palette,
   Settings,
   UserRound,
@@ -64,6 +65,7 @@ function projectNav(projectId: string, persona: ProfilePersona | null): NavGroup
     {
       label: 'Content',
       items: [
+        { label: 'Studio', href: `${base}/studio`, icon: MessagesSquare },
         { label: 'Directions', href: `${base}/directions`, icon: Lightbulb },
         { label: 'Drafts', href: `${base}/drafts`, icon: FileText },
         { label: 'Calendar', href: `${base}/calendar`, icon: Calendar },

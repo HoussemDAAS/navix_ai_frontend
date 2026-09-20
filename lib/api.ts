@@ -130,6 +130,80 @@ export function autofillBrandKit(projectId: string, overwrite = false) {
   )
 }
 
+/* ── Studio: conversational co-creation ─────────────────────── */
+
+export interface StudioSession {
+  id: string
+  project_id: string
+  title: string
+  /** Language the content is written in; the assistant itself talks in English */
+  content_language: string
+  created_at: string
+  last_message_at: string
+}
+
+export interface StudioIdea {
+  id?: string
+  title_pillar: string
+  angle: string
+  format: string
+  hook_suggestion: string
+  cta_suggestion: string
+  rationale: string
+}
+
+export interface StudioDraft {
+  id?: string
+  direction_id?: string
+  idea_title: string
+  format: string
+  language: string
+  caption_text: string
+  video_script?: string | null
+  hook_alternatives: string[]
+  cta_alternatives: string[]
+  tips: Record<string, string>
+  revises_draft_id?: string | null
+  version?: number
+}
+
+export type StudioArtifact = ({ type: 'idea' } & StudioIdea) | ({ type: 'draft' } & StudioDraft)
+
+export interface StudioMessage {
+  id: string
+  session_id: string
+  role: 'user' | 'assistant'
+  content: string
+  artifacts: StudioArtifact[]
+  created_at: string
+}
+
+export type StudioEvent =
+  | { type: 'token'; text: string }
+  | { type: 'tool'; name: string; query?: string; hits?: number }
+  | { type: 'ideas'; ideas: StudioIdea[] }
+  | { type: 'draft'; draft: StudioDraft }
+  | { type: 'saved'; message_id: string }
+  | { type: 'done' }
+  | { type: 'error'; message: string }
+
+export function listStudioSessions(projectId: string) {
+  return request<{ data: StudioSession[] }>(`/projects/${projectId}/studio/sessions`)
+}
+
+export function createStudioSession(projectId: string, contentLanguage?: string) {
+  return request<{ data: { session: StudioSession; messages: StudioMessage[] } }>(
+    `/projects/${projectId}/studio/sessions`,
+    { method: 'POST', body: JSON.stringify({ content_language: contentLanguage }) },
+  )
+}
+
+export function getStudioMessages(projectId: string, sessionId: string) {
+  return request<{ data: { session: StudioSession; messages: StudioMessage[] } }>(
+    `/projects/${projectId}/studio/sessions/${sessionId}/messages`,
+  )
+}
+
 export function createProject(data: CreateProjectPayload) {
   return request<{ message: string; data: Project }>('/projects', {
     method: 'POST',
