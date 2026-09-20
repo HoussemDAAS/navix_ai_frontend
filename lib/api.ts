@@ -74,6 +74,17 @@ export interface Project {
   keywords?: string[] | null
   seed_accounts?: string[] | null
   created_at: string
+  /** The project a single-brand account lands on; exactly one per user. */
+  is_primary: boolean
+  // The brand's own social account, as last scraped
+  followers_count: number | null
+  following_count: number | null
+  posts_count: number | null
+  biography: string | null
+  avatar_url: string | null
+  is_verified: boolean
+  last_scraped_at: string | null
+  ai_insight_at: string | null
 }
 
 export function getProjects() {
