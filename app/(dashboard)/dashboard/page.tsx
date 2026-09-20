@@ -236,7 +236,10 @@ export default function DashboardPage() {
           transition={{ delay: 0.04, duration: 0.4 }}
           className="mb-5 sm:mb-6"
         >
-          <IdentityStrip profile={profile} />
+          <IdentityStrip
+            profile={profile}
+            profileHref={projects[0] ? `/projects/${projects[0].id}/profile` : undefined}
+          />
         </motion.div>
       )}
 

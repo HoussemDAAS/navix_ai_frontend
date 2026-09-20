@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
@@ -8,6 +8,10 @@ import { DashboardShell } from '@/components/layout/DashboardShell'
 import { BackLink } from '@/components/profile/BackLink'
 import { ProfileHero } from '@/components/profile/ProfileHero'
 import { ProfileStats, buildProfileStats } from '@/components/profile/ProfileStats'
+import { CreatorScoreCard } from '@/components/profile/CreatorScoreCard'
+import { HighlightsRow } from '@/components/profile/HighlightsRow'
+import { MomentumSection } from '@/components/profile/MomentumSection'
+import { ContentDnaIsland } from '@/components/profile/ContentDnaIsland'
 import { AiReadIsland } from '@/components/profile/AiReadIsland'
 import { InsightList } from '@/components/profile/InsightList'
 import { IdeaCards } from '@/components/profile/IdeaCards'
@@ -16,7 +20,22 @@ import { PostsGrid } from '@/components/profile/PostsGrid'
 import { EmptyPostsIsland } from '@/components/profile/EmptyPostsIsland'
 import { ProfileSkeleton } from '@/components/profile/ProfileSkeleton'
 import { ProfileErrorState } from '@/components/profile/ProfileErrorState'
-import { getSelfProfile, type SelfProfileData } from '@/lib/api'
+import {
+  getFieldAnalytics,
+  getSelfProfile,
+  type FieldAnalytics,
+  type SelfProfileData,
+} from '@/lib/api'
+import {
+  bestPost,
+  bestPostingDay,
+  captionInsight,
+  computeCreatorScore,
+  daysSinceLastPost,
+  monthlyMomentum,
+  mostDiscussedPost,
+  topOwnHashtags,
+} from '@/lib/creator-score'
 
 type PageState = 'loading' | 'ready' | 'error'
 
@@ -26,6 +45,7 @@ export default function SelfProfilePage() {
 
   const [state, setState] = useState<PageState>('loading')
   const [data, setData] = useState<SelfProfileData | null>(null)
+  const [field, setField] = useState<FieldAnalytics | null>(null)
   const [loadError, setLoadError] = useState('')
   const [refreshing, setRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState<string | null>(null)
@@ -34,8 +54,13 @@ export default function SelfProfilePage() {
     setState('loading')
     setLoadError('')
     try {
-      const res = await getSelfProfile(projectId)
+      // The field read only sharpens the score's comparison — never block the page on it.
+      const [res, fieldRes] = await Promise.all([
+        getSelfProfile(projectId),
+        getFieldAnalytics(projectId).catch(() => ({ data: null })),
+      ])
       setData(res.data)
+      setField(fieldRes.data)
       setState('ready')
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Something went wrong.')
@@ -61,6 +86,29 @@ export default function SelfProfilePage() {
   }, [projectId])
 
   const insight = data?.insight ?? null
+  const posts = useMemo(() => data?.posts ?? [], [data])
+
+  const score = useMemo(
+    () => (data ? computeCreatorScore(data.stats, posts, field) : null),
+    [data, posts, field],
+  )
+  const momentum = useMemo(() => monthlyMomentum(posts), [posts])
+  const highlights = useMemo(
+    () => ({
+      best: bestPost(posts),
+      discussed: mostDiscussedPost(posts),
+      days: daysSinceLastPost(posts),
+    }),
+    [posts],
+  )
+  const dna = useMemo(
+    () => ({
+      hashtags: topOwnHashtags(posts),
+      caption: captionInsight(posts),
+      bestDay: bestPostingDay(posts),
+    }),
+    [posts],
+  )
 
   return (
     <DashboardShell>
@@ -89,6 +137,25 @@ export default function SelfProfilePage() {
             />
 
             <ProfileStats stats={buildProfileStats(data.stats)} />
+
+            {score && <CreatorScoreCard score={score} postCount={posts.length} />}
+
+            <HighlightsRow
+              best={highlights.best}
+              discussed={highlights.discussed}
+              daysSinceLastPost={highlights.days}
+            />
+
+            {momentum.length >= 3 && <MomentumSection buckets={momentum} />}
+
+            {posts.length > 0 && (
+              <ContentDnaIsland
+                hashtags={dna.hashtags}
+                caption={dna.caption}
+                bestDay={dna.bestDay}
+                dominantFormat={data.stats.dominant_format}
+              />
+            )}
 
             <AiReadIsland
               status={data.insight_status}

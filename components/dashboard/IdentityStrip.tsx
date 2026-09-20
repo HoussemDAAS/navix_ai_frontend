@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { BadgeCheck, Instagram, Target } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowRight, BadgeCheck, Instagram, Target } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { avatarSrc } from '@/lib/avatar'
 import { formatCount, initialsOf } from './utils'
@@ -15,10 +16,12 @@ const personaLabels: Record<ProfilePersona, string> = {
 
 interface IdentityStripProps {
   profile: Profile
+  /** When set, the strip links to the full creator profile dossier */
+  profileHref?: string
   className?: string
 }
 
-export function IdentityStrip({ profile, className }: IdentityStripProps) {
+export function IdentityStrip({ profile, profileHref, className }: IdentityStripProps) {
   const [broken, setBroken] = useState(false)
 
   const displayName = profile.entity_name || profile.full_name
@@ -86,18 +89,25 @@ export function IdentityStrip({ profile, className }: IdentityStripProps) {
           </div>
         </div>
 
-        {stats.length > 0 && (
-          <div className="flex shrink-0 items-center gap-6 border-t border-alpha-10 pt-3 sm:border-t-0 sm:pt-0">
-            {stats.map((stat) => (
-              <div key={stat.label}>
-                <p className="text-h6 font-bold leading-none text-primary-900">
-                  {formatCount(stat.value)}
-                </p>
-                <p className="mt-1 text-caption-2 text-alpha-60">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="flex shrink-0 flex-wrap items-center gap-4 border-t border-alpha-10 pt-3 sm:gap-6 sm:border-t-0 sm:pt-0">
+          {stats.map((stat) => (
+            <div key={stat.label}>
+              <p className="text-h6 font-bold leading-none text-primary-900">
+                {formatCount(stat.value)}
+              </p>
+              <p className="mt-1 text-caption-2 text-alpha-60">{stat.label}</p>
+            </div>
+          ))}
+          {profileHref && (
+            <Link
+              href={profileHref}
+              className="inline-flex items-center gap-1.5 rounded-[10px] border border-primary-900 bg-white px-3.5 py-2 text-caption-1 font-semibold text-primary-900 shadow-signature transition-all duration-200 hover:bg-secondary-50 hover:shadow-[0px_3px_0px_0px_#191a23] active:translate-y-[2px] active:shadow-none"
+            >
+              Full profile
+              <ArrowRight className="size-3.5" />
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   )
