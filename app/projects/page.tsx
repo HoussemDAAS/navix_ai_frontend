@@ -6,10 +6,10 @@ import Link from 'next/link'
 import { FolderOpen, Plus, ArrowRight, MapPin, Target, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { DashboardShell } from '@/components/layout/DashboardShell'
+import { invalidateWorkspace, useWorkspace } from '@/components/layout/WorkspaceContext'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Spinner } from '@/components/ui/spinner'
 import {
-  getProjects,
   createProject,
   discoverCompetitors,
   type Project,
@@ -216,26 +216,36 @@ function NewProjectModal({
   )
 }
 
-export default function ProjectsPage() {
+function ProjectsContent() {
   const router = useRouter()
-  const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
+  const { projects, loading, error, refresh, persona, singleBrand, primaryProject } = useWorkspace()
   const [showModal, setShowModal] = useState(false)
 
+  // Single-brand accounts have exactly one project and never pick from a list.
+  const redirectTo = singleBrand && primaryProject ? `/projects/${primaryProject.id}` : null
   useEffect(() => {
-    getProjects()
-      .then((res) => setProjects(res.data || []))
-      .catch(() => setError(true))
-      .finally(() => setLoading(false))
-  }, [])
+    if (redirectTo) router.replace(redirectTo)
+  }, [redirectTo, router])
+
+  const isAgency = persona === 'agency'
+  const noun = isAgency ? 'client' : 'project'
 
   function handleCreated(project: Project) {
+    invalidateWorkspace()
+    void refresh()
     router.push(`/projects/${project.id}/competitors`)
   }
 
+  if (redirectTo) {
+    return (
+      <div className="flex h-[40vh] items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    )
+  }
+
   return (
-    <DashboardShell>
+    <>
       <div className="px-5 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 max-w-[1100px]">
         {/* Header */}
         <motion.div
@@ -246,10 +256,12 @@ export default function ProjectsPage() {
         >
           <div>
             <h1 className="text-h5 sm:text-h4 font-bold text-primary-900">
-              Your Projects
+              {isAgency ? 'Your clients' : 'Your projects'}
             </h1>
             <p className="mt-1.5 text-body-2 text-alpha-60">
-              Manage your competitive intelligence projects
+              {isAgency
+                ? 'The brands you run content for — one workspace each.'
+                : 'Manage your competitive intelligence projects'}
             </p>
           </div>
           <button
@@ -258,7 +270,7 @@ export default function ProjectsPage() {
             className={'hidden sm:inline-flex ' + ctaClasses}
           >
             <Plus className="size-4" />
-            New Project
+            New {noun}
           </button>
         </motion.div>
 
@@ -270,10 +282,12 @@ export default function ProjectsPage() {
 
         {!loading && error && (
           <div className="rounded-[12px] border border-alpha-10 bg-alpha-5/50 p-8 text-center">
-            <p className="text-body-2 text-alpha-60 mb-4">Couldn&apos;t load your projects.</p>
+            <p className="text-body-2 text-alpha-60 mb-4">Couldn&apos;t load your {noun}s.</p>
             <button
               type="button"
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                void refresh()
+              }}
               className={ctaClasses}
             >
               Try again
@@ -290,12 +304,16 @@ export default function ProjectsPage() {
           >
             <EmptyState
               icon={FolderOpen}
-              title="Create your first project"
-              description="Start by setting up a project to discover competitors and generate content for your brand."
+              title={isAgency ? 'Add your first client' : 'Create your first project'}
+              description={
+                isAgency
+                  ? 'Each client gets its own workspace: competitors, analysis, directions and calendar.'
+                  : 'Start by setting up a project to discover competitors and generate content for your brand.'
+              }
               action={
                 <button type="button" onClick={() => setShowModal(true)} className={ctaClasses}>
                   <Plus className="size-4" />
-                  New Project
+                  New {noun}
                   <ArrowRight className="size-4" />
                 </button>
               }
@@ -357,6 +375,14 @@ export default function ProjectsPage() {
           <NewProjectModal onClose={() => setShowModal(false)} onCreated={handleCreated} />
         )}
       </div>
+    </>
+  )
+}
+
+export default function ProjectsPage() {
+  return (
+    <DashboardShell>
+      <ProjectsContent />
     </DashboardShell>
   )
 }

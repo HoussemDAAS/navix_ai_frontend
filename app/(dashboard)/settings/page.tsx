@@ -18,7 +18,6 @@ import { supabase } from '@/lib/supabase/client'
 import { getProfile, updateProfile, type Profile, type ProfilePersona } from '@/lib/api'
 import { parseSocialLink, type SocialPlatform } from '@/lib/social-links'
 import { Spinner } from '@/components/ui/spinner'
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { SettingsIsland } from '@/components/settings/SettingsIsland'
@@ -27,6 +26,8 @@ import { SocialAccountRow } from '@/components/settings/SocialAccountRow'
 import { PasteLinkInput } from '@/components/settings/PasteLinkInput'
 import { ChipInput } from '@/components/settings/ChipInput'
 import { SaveBar } from '@/components/settings/SaveBar'
+import { AccountTypeSwitch } from '@/components/settings/AccountTypeSwitch'
+import { invalidateWorkspace, useWorkspace } from '@/components/layout/WorkspaceContext'
 
 const TEXT_FIELDS = [
   'full_name',
@@ -52,12 +53,6 @@ const HANDLE_FIELD: Record<SocialPlatform, TextField> = {
   tiktok: 'tiktok_handle',
   youtube: 'youtube_handle',
   facebook: 'facebook_handle',
-}
-
-const PERSONA_LABEL: Record<ProfilePersona, string> = {
-  creator: 'Creator',
-  ecommerce: 'E-commerce',
-  agency: 'Agency',
 }
 
 const MAX_KEYWORDS = 15
@@ -131,6 +126,8 @@ export default function SettingsPage() {
   const [savedFlash, setSavedFlash] = useState(false)
   const [filledPlatform, setFilledPlatform] = useState<SocialPlatform | null>(null)
   const [signingOut, setSigningOut] = useState(false)
+  const [personaSaving, setPersonaSaving] = useState(false)
+  const workspace = useWorkspace()
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -151,6 +148,23 @@ export default function SettingsPage() {
   useEffect(() => {
     load()
   }, [load])
+
+  async function changePersona(next: ProfilePersona) {
+    if (!profile || next === profile.persona || personaSaving) return
+    setPersonaSaving(true)
+    setSaveError(null)
+    try {
+      const res = await updateProfile({ persona: next })
+      setProfile(res.data)
+      // The shell reshapes around the persona: sidebar, home and project limits.
+      invalidateWorkspace()
+      await workspace.refresh()
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Could not change the account type.')
+    } finally {
+      setPersonaSaving(false)
+    }
+  }
 
   const initial = useMemo(() => (profile ? toForm(profile) : null), [profile])
 
@@ -332,20 +346,19 @@ export default function SettingsPage() {
                 </p>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <span className="block text-caption-1 font-semibold text-primary-900">
                   Account type
                 </span>
-                {profile.persona ? (
-                  <Badge
-                    variant="outline"
-                    className="border-alpha-20 bg-alpha-5 px-3 py-1 text-caption-1 text-primary-900"
-                  >
-                    {PERSONA_LABEL[profile.persona]}
-                  </Badge>
-                ) : (
-                  <p className="text-caption-2 text-alpha-40">Not set yet.</p>
-                )}
+                <p className="text-caption-2 text-alpha-60">
+                  Shapes the whole app: what home looks like, how many projects you can run and how
+                  the AI writes for you. Changes apply immediately.
+                </p>
+                <AccountTypeSwitch
+                  value={profile.persona}
+                  onChange={changePersona}
+                  saving={personaSaving}
+                />
               </div>
             </div>
           </div>

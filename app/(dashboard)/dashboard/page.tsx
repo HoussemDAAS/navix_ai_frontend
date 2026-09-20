@@ -12,10 +12,11 @@ import {
   Search,
   Users,
 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import { getProfile, getProjects, type Profile, type Project } from '@/lib/api'
 import { Spinner } from '@/components/ui/spinner'
+import { useWorkspace } from '@/components/layout/WorkspaceContext'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ContinueIsland } from '@/components/dashboard/ContinueIsland'
 import { IdentityStrip } from '@/components/dashboard/IdentityStrip'
@@ -26,48 +27,30 @@ import type { ProjectStats } from '@/components/dashboard/types'
 
 /** Per-project fan-out is capped so the dashboard stays a handful of requests. */
 const STATS_WINDOW = 6
+const EMPTY_STATS: Record<string, ProjectStats> = {}
 
 const ctaClasses =
   'inline-flex items-center justify-center gap-2 rounded-[12px] bg-secondary-300 px-4 py-2.5 text-caption-1 font-medium text-primary-900 border border-primary-900 shadow-signature transition-all duration-200 hover:bg-secondary-400 hover:shadow-[0px_3px_0px_0px_#191a23] active:shadow-none active:translate-y-[2px]'
 
 export default function DashboardPage() {
-  const [projects, setProjects] = useState<Project[]>([])
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [stats, setStats] = useState<Record<string, ProjectStats>>({})
-  const [loading, setLoading] = useState(true)
-  const [statsLoading, setStatsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [reloadKey, setReloadKey] = useState(0)
+  const router = useRouter()
+  const { projects, profile, loading, error, refresh, persona, singleBrand, primaryProject } =
+    useWorkspace()
+  // Keyed by the project window it was fetched for, so loading state is derived
+  // instead of being set synchronously inside the effect.
+  const [statsState, setStatsState] = useState<{
+    key: string
+    stats: Record<string, ProjectStats>
+  } | null>(null)
 
+  // Single-brand accounts (creator, e-commerce) have no lobby: home is their project.
+  const redirectTo = singleBrand && primaryProject ? `/projects/${primaryProject.id}` : null
   useEffect(() => {
-    let cancelled = false
+    if (redirectTo) router.replace(redirectTo)
+  }, [redirectTo, router])
 
-    async function load() {
-      setLoading(true)
-      setError(null)
-      try {
-        const [projectsRes, profileRes] = await Promise.all([
-          getProjects(),
-          // A missing profile must never blank the page — the rest still renders.
-          getProfile().catch(() => ({ data: null as Profile | null })),
-        ])
-        if (cancelled) return
-        setProjects(projectsRes.data ?? [])
-        setProfile(profileRes.data ?? null)
-      } catch (err) {
-        if (cancelled) return
-        console.error('Failed to load dashboard data:', err)
-        setError(err instanceof Error ? err.message : 'Something went wrong loading your dashboard.')
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [reloadKey])
+  // What remains here is the agency portfolio (and brand-new accounts without a project).
+  const noun = persona === 'agency' ? 'client' : 'project'
 
   const recentProjects = useMemo(
     () =>
@@ -82,36 +65,37 @@ export default function DashboardPage() {
     [recentProjects],
   )
 
+  const statsKey = statsWindow.map((p) => p.id).join(',')
+
   useEffect(() => {
-    if (loading) return
-    if (statsWindow.length === 0) {
-      setStats({})
-      setStatsLoading(false)
-      return
-    }
+    if (loading || statsWindow.length === 0) return
 
     let cancelled = false
-    setStatsLoading(true)
-
     Promise.all(statsWindow.map((p) => fetchProjectStats(p.id)))
       .then((results) => {
         if (cancelled) return
-        setStats(Object.fromEntries(results.map((s) => [s.projectId, s])))
+        setStatsState({
+          key: statsKey,
+          stats: Object.fromEntries(results.map((s) => [s.projectId, s])),
+        })
       })
       .catch((err) => {
         if (cancelled) return
         console.error('Failed to load project stats:', err)
-      })
-      .finally(() => {
-        if (!cancelled) setStatsLoading(false)
+        setStatsState({ key: statsKey, stats: {} })
       })
 
     return () => {
       cancelled = true
     }
-  }, [statsWindow, loading])
+  }, [statsWindow, statsKey, loading])
 
-  const retry = useCallback(() => setReloadKey((k) => k + 1), [])
+  const stats = statsState?.key === statsKey ? statsState.stats : EMPTY_STATS
+  const statsLoading = statsWindow.length > 0 && statsState?.key !== statsKey
+
+  const retry = useCallback(() => {
+    void refresh()
+  }, [refresh])
 
   const loadedStats = useMemo(() => Object.values(stats), [stats])
 
@@ -121,9 +105,14 @@ export default function DashboardPage() {
     const list: StatTileData[] = [
       {
         key: 'projects',
-        label: 'Projects',
+        label: noun === 'client' ? 'Clients' : 'Projects',
         value: projects.length,
-        hint: projects.length === 1 ? 'workspace' : 'workspaces',
+        hint:
+          noun === 'client'
+            ? 'under management'
+            : projects.length === 1
+              ? 'workspace'
+              : 'workspaces',
         icon: FolderOpen,
       },
     ]
@@ -158,12 +147,12 @@ export default function DashboardPage() {
     }
 
     return list
-  }, [projects.length, loadedStats])
+  }, [projects.length, loadedStats, noun])
 
   const currentProject = recentProjects[0] ?? null
   const currentStats = currentProject ? (stats[currentProject.id] ?? null) : null
 
-  if (loading) {
+  if (loading || redirectTo) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <Spinner size="lg" />
@@ -189,14 +178,14 @@ export default function DashboardPage() {
           </h1>
           <p className="mt-1.5 text-body-2 text-alpha-60">
             {hasProjects
-              ? `You have ${projects.length} active project${projects.length > 1 ? 's' : ''}`
-              : "Let's get started with your first project"}
+              ? `You have ${projects.length} active ${noun}${projects.length > 1 ? 's' : ''}`
+              : `Let's get started with your first ${noun}`}
           </p>
         </div>
         {hasProjects && (
           <Link href="/projects" className={cn(ctaClasses, 'hidden shrink-0 sm:inline-flex')}>
             <Plus className="size-4" />
-            New Project
+            New {noun}
           </Link>
         )}
       </motion.div>
@@ -276,7 +265,7 @@ export default function DashboardPage() {
             transition={{ delay: 0.16, duration: 0.4 }}
             className="mb-4 flex items-center justify-between gap-3"
           >
-            <h2 className="text-subheadline font-semibold text-primary-900">Your projects</h2>
+            <h2 className="text-subheadline font-semibold text-primary-900">Your {noun}s</h2>
             {/* The header CTA is desktop-only — keep one reachable on small screens. */}
             <Link href="/projects" className={cn(ctaClasses, 'shrink-0 sm:hidden')}>
               <Plus className="size-4" />
@@ -307,15 +296,19 @@ export default function DashboardPage() {
           >
             <EmptyState
               icon={FolderOpen}
-              title="No projects yet"
-              description="Start by creating a project to discover competitors and generate content for your brand."
+              title={`No ${noun}s yet`}
+              description={
+                noun === 'client'
+                  ? 'Add your first client to discover their competitors and generate content for their brand.'
+                  : 'Start by creating a project to discover competitors and generate content for your brand.'
+              }
               action={
                 <Link
                   href="/projects"
                   className="inline-flex items-center gap-2 rounded-[12px] bg-secondary-300 px-5 py-3 text-body-2 font-medium text-primary-900 border border-primary-900 shadow-signature transition-all duration-200 hover:bg-secondary-400 hover:shadow-[0px_3px_0px_0px_#191a23] active:shadow-none active:translate-y-[2px]"
                 >
                   <Plus className="size-4" />
-                  Create Project
+                  {noun === 'client' ? 'Add client' : 'Create project'}
                   <ArrowRight className="size-4" />
                 </Link>
               }

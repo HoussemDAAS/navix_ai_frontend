@@ -66,6 +66,8 @@ export interface Project {
   location: string | null
   persona: string | null
   website: string | null
+  /** Uploaded brand logo (avatar_url below is the scraped social profile photo) */
+  logo_url?: string | null
   instagram_handle: string | null
   tiktok_handle: string | null
   youtube_handle: string | null

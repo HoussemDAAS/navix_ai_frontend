@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Topbar } from '@/components/layout/Topbar'
+import { WorkspaceProvider } from '@/components/layout/WorkspaceContext'
 import { Spinner } from '@/components/ui/spinner'
 import type { User } from '@supabase/supabase-js'
 
@@ -63,14 +64,16 @@ export function DashboardShell({ children }: DashboardShellProps) {
   const initials = getInitials(email)
 
   return (
-    <div className="flex min-h-screen bg-white">
-      <Sidebar userEmail={email} userInitials={initials} />
-      <div className="flex flex-1 flex-col min-w-0">
-        <Topbar />
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
+    <WorkspaceProvider>
+      <div className="flex min-h-screen bg-white">
+        <Sidebar userEmail={email} userInitials={initials} />
+        <div className="flex flex-1 flex-col min-w-0">
+          <Topbar />
+          <main className="flex-1 overflow-y-auto">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </WorkspaceProvider>
   )
 }

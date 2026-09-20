@@ -12,13 +12,13 @@ import {
   Calendar,
   ArrowRight,
   CheckCircle2,
-  MapPin,
-  Target,
   RefreshCw,
   Sparkles,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { DashboardShell } from '@/components/layout/DashboardShell'
+import { useWorkspace } from '@/components/layout/WorkspaceContext'
+import { ProjectHero } from '@/components/project/ProjectHero'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import { avatarSrc } from '@/lib/avatar'
@@ -180,9 +180,10 @@ function PodiumCard({
   )
 }
 
-export default function ProjectOverviewPage() {
+function OverviewContent() {
   const params = useParams()
   const projectId = params.id as string
+  const { profile, persona, singleBrand } = useWorkspace()
 
   const [project, setProject] = useState<Project | null>(null)
   const [competitors, setCompetitors] = useState<Competitor[]>([])
@@ -241,17 +242,14 @@ export default function ProjectOverviewPage() {
 
   if (loading) {
     return (
-      <DashboardShell>
-        <div className="flex h-[60vh] items-center justify-center">
-          <Spinner size="lg" />
-        </div>
-      </DashboardShell>
+      <div className="flex h-[60vh] items-center justify-center">
+        <Spinner size="lg" />
+      </div>
     )
   }
 
   if (!project) {
     return (
-      <DashboardShell>
         <div className="flex h-[60vh] flex-col items-center justify-center gap-4 text-center px-5">
           <h2 className="text-h5 font-bold text-primary-900">Project not found</h2>
           <p className="text-body-2 text-alpha-60">This project doesn&apos;t exist or you don&apos;t have access.</p>
@@ -262,7 +260,6 @@ export default function ProjectOverviewPage() {
             Back to Dashboard
           </Link>
         </div>
-      </DashboardShell>
     )
   }
 
@@ -275,6 +272,7 @@ export default function ProjectOverviewPage() {
   const hasAnalysis = analysis !== null
   const briefTakeaways = analysis?.key_takeaways?.slice(0, 3) ?? []
   const briefOpportunity = analysis?.whitespace_opportunities?.[0] ?? null
+  const firstName = (profile?.full_name || project.name).trim().split(/\s+/)[0] || 'there'
 
   // Podium: prefer the exact competitors the AI analyzed so the two sections agree
   const podium =
@@ -303,34 +301,40 @@ export default function ProjectOverviewPage() {
   }))
 
   return (
-    <DashboardShell>
+    <>
       <div className="px-5 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 max-w-[1100px]">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
+          className="mb-5"
+        >
+          {singleBrand ? (
+            <>
+              <h1 className="text-h5 sm:text-h4 font-bold text-primary-900">
+                Welcome back, {firstName}
+              </h1>
+              <p className="mt-1.5 text-body-2 text-alpha-60">
+                Here&apos;s where your brand stands today.
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-h5 sm:text-h4 font-bold text-primary-900">{project.name}</h1>
+              <p className="mt-1.5 text-body-2 text-alpha-60">Client overview</p>
+            </>
+          )}
+        </motion.div>
+
+        {/* The brand under analysis, as last scraped */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.03, duration: 0.4 }}
           className="mb-6"
         >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <h1 className="text-h5 sm:text-h4 font-bold text-primary-900">
-              {project.name}
-            </h1>
-            <div className="flex items-center gap-2 flex-wrap">
-              {project.niche && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-alpha-5 border border-alpha-10 px-3 py-1 text-caption-2 font-medium text-alpha-60">
-                  <Target className="size-3" />
-                  {project.niche}
-                </span>
-              )}
-              {project.location && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-alpha-5 border border-alpha-10 px-3 py-1 text-caption-2 font-medium text-alpha-60">
-                  <MapPin className="size-3" />
-                  {project.location}
-                </span>
-              )}
-            </div>
-          </div>
+          <ProjectHero project={project} persona={persona} />
         </motion.div>
 
         {/* Progress Stepper */}
@@ -692,6 +696,14 @@ export default function ProjectOverviewPage() {
           </div>
         </motion.div>
       </div>
+    </>
+  )
+}
+
+export default function ProjectOverviewPage() {
+  return (
+    <DashboardShell>
+      <OverviewContent />
     </DashboardShell>
   )
 }
