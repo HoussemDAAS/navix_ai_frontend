@@ -374,7 +374,8 @@ export function getDrafts(projectId: string) {
 export function generateDrafts(projectId: string, directionIds: string[]) {
   return request<{ jobId: string }>(`/projects/${projectId}/drafts/generate`, {
     method: 'POST',
-    body: JSON.stringify({ direction_ids: directionIds }),
+    // GenerateDraftsDto is camelCase — snake_case here was refused with 400
+    body: JSON.stringify({ directionIds }),
   })
 }
 
