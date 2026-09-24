@@ -20,6 +20,7 @@ import { DashboardShell } from '@/components/layout/DashboardShell'
 import { AiMark } from '@/components/ui/ai-mark'
 import { Spinner } from '@/components/ui/spinner'
 import { DraftCard, IdeaCard } from '@/components/studio/ArtifactCards'
+import { MemoryPanel } from '@/components/studio/MemoryPanel'
 import { addStudioLinkReference, streamStudioMessage, uploadStudioReference } from '@/lib/studio-stream'
 import { cn } from '@/lib/utils'
 import {
@@ -144,7 +145,7 @@ function StudioContent() {
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useState<'ideas' | 'drafts' | 'references'>('ideas')
+  const [tab, setTab] = useState<'ideas' | 'drafts' | 'references' | 'memory'>('ideas')
   const [dragging, setDragging] = useState(false)
 
   const abortRef = useRef<AbortController | null>(null)
@@ -677,19 +678,21 @@ function StudioContent() {
         {/* Canvas */}
         <aside className="self-start rounded-[20px] border border-alpha-10 bg-white p-4 shadow-card lg:sticky lg:top-6">
           <div className="mb-3 flex items-center gap-1 rounded-[10px] bg-alpha-5 p-1">
-            {(['ideas', 'drafts', 'references'] as const).map((t) => {
-              const count = t === 'ideas' ? ideas.length : t === 'drafts' ? drafts.length : references.length
+            {(['ideas', 'drafts', 'references', 'memory'] as const).map((t) => {
+              const count =
+                t === 'ideas' ? ideas.length : t === 'drafts' ? drafts.length : t === 'references' ? references.length : null
               return (
                 <button
                   key={t}
                   type="button"
                   onClick={() => setTab(t)}
                   className={cn(
-                    'flex-1 rounded-[8px] px-2 py-1.5 text-caption-1 font-semibold capitalize transition-colors',
+                    'flex-1 rounded-[8px] px-1.5 py-1.5 text-caption-2 font-semibold capitalize transition-colors sm:text-caption-1',
                     tab === t ? 'bg-white text-primary-900 shadow-card' : 'text-alpha-60 hover:text-primary-900',
                   )}
                 >
-                  {t} <span className="text-alpha-40">{count}</span>
+                  {t}
+                  {count !== null && <span className="ml-1 text-alpha-40">{count}</span>}
                 </button>
               )
             })}
@@ -717,6 +720,7 @@ function StudioContent() {
               ) : (
                 references.map((r) => <ReferenceCard key={r.id} reference={r} />)
               ))}
+            {tab === 'memory' && <MemoryPanel projectId={projectId} />}
           </div>
         </aside>
       </div>

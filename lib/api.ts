@@ -231,6 +231,45 @@ export function listStudioReferences(projectId: string, sessionId: string) {
   )
 }
 
+/* ── Creator memory: what Navix has learned about this brand ── */
+
+export type MemoryKind = 'preference' | 'avoid' | 'topic' | 'format' | 'voice' | 'audience' | 'goal'
+
+export interface CreatorMemoryItem {
+  id: string
+  text: string
+  kind: MemoryKind | string
+  source: string
+  learned_at: string
+}
+
+export interface CreatorMemory {
+  summary: string
+  learned: CreatorMemoryItem[]
+  updated_at: string | null
+}
+
+export function getCreatorMemory(projectId: string) {
+  return request<{ data: CreatorMemory }>(`/projects/${projectId}/studio/memory`)
+}
+
+export function updateCreatorMemory(
+  projectId: string,
+  patch: { summary?: string; learned?: Array<Partial<CreatorMemoryItem> & { text: string }> },
+) {
+  return request<{ data: CreatorMemory }>(`/projects/${projectId}/studio/memory`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  })
+}
+
+/** Learn from the most recent sessions now instead of waiting for the next pass */
+export function refreshCreatorMemory(projectId: string) {
+  return request<{ data: CreatorMemory }>(`/projects/${projectId}/studio/memory/refresh`, {
+    method: 'POST',
+  })
+}
+
 export function createProject(data: CreateProjectPayload) {
   return request<{ message: string; data: Project }>('/projects', {
     method: 'POST',
