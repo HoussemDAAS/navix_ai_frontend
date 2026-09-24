@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Copy, Lightbulb, PenLine, ThumbsDown, Wand2 } from 'lucide-react'
+import { CalendarCheck, CalendarPlus, Check, Copy, Lightbulb, PenLine, ThumbsDown, Wand2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
+  scheduleDraft,
   submitDraftFeedback,
   updateDraft,
   type DraftStatus,
@@ -86,6 +87,25 @@ export function DraftCard({ draft, projectId, onRevise, compact = false, disable
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState(false)
   const [scriptOpen, setScriptOpen] = useState(false)
+  const [scheduled, setScheduled] = useState<{ when: string; reason: string } | null>(null)
+  const [scheduling, setScheduling] = useState(false)
+
+  async function schedule() {
+    if (!draft.id || scheduling) return
+    setScheduling(true)
+    try {
+      const res = await scheduleDraft(projectId, draft.id)
+      setStatus('APPROVED')
+      setScheduled({
+        when: new Date(res.data.item.scheduled_at).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        reason: res.data.reason,
+      })
+    } catch {
+      // the Library offers the same action with a visible error
+    } finally {
+      setScheduling(false)
+    }
+  }
 
   async function decide(next: 'APPROVED' | 'REJECTED') {
     if (!draft.id || saving) return
@@ -201,11 +221,27 @@ export function DraftCard({ draft, projectId, onRevise, compact = false, disable
         </div>
       )}
 
+      {scheduled && (
+        <p className="mt-3 inline-flex items-start gap-1.5 rounded-[10px] border border-success-300 bg-success-50 px-3 py-2 text-caption-2 text-success-700">
+          <CalendarCheck className="mt-0.5 size-3.5 shrink-0" />
+          <span>
+            <span className="font-semibold">Scheduled · {scheduled.when}.</span> {scheduled.reason}
+          </span>
+        </p>
+      )}
+
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => decide('APPROVED')} disabled={disabled || saving || !draft.id || status === 'APPROVED'} className={lime}>
-          <Check className="size-3.5" />
-          Approve
-        </button>
+        {status === 'APPROVED' && !scheduled ? (
+          <button type="button" onClick={schedule} disabled={disabled || scheduling || !draft.id} className={lime}>
+            <CalendarPlus className="size-3.5" />
+            {scheduling ? 'Finding the best slot…' : 'Schedule'}
+          </button>
+        ) : (
+          <button type="button" onClick={() => decide('APPROVED')} disabled={disabled || saving || !draft.id || status === 'APPROVED'} className={lime}>
+            <Check className="size-3.5" />
+            {status === 'APPROVED' ? 'Approved' : 'Approve'}
+          </button>
+        )}
         <button type="button" onClick={() => onRevise(draft)} disabled={disabled} className={quiet}>
           <Wand2 className="size-3.5" />
           Revise

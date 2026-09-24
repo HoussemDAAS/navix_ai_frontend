@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
   ArrowRight,
+  CalendarCheck,
+  CalendarPlus,
   Check,
   Lightbulb,
   MessagesSquare,
@@ -18,15 +20,23 @@ import { DashboardShell } from '@/components/layout/DashboardShell'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import {
+  getCalendar,
   getDirections,
   getDrafts,
+  planWeek,
+  scheduleDraft,
   selectDirection,
   submitDraftFeedback,
   updateDraft,
+  type CalendarItem,
   type ContentDirection,
   type Draft,
   type DraftStatus,
 } from '@/lib/api'
+
+function slotLabel(iso: string): string {
+  return new Date(iso).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
 
 const lime =
   'inline-flex items-center justify-center gap-2 rounded-[12px] bg-secondary-300 px-4 py-2.5 text-caption-1 font-semibold text-primary-900 border border-primary-900 shadow-signature transition-all duration-200 hover:bg-secondary-400 hover:shadow-[0px_3px_0px_0px_#191a23] active:shadow-none active:translate-y-[2px] disabled:opacity-50 disabled:pointer-events-none'
@@ -58,19 +68,25 @@ function LibraryContent() {
   const [draftFilter, setDraftFilter] = useState<DraftFilter>('all')
   const [ideas, setIdeas] = useState<ContentDirection[]>([])
   const [drafts, setDrafts] = useState<Draft[]>([])
+  const [calendar, setCalendar] = useState<CalendarItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [planning, setPlanning] = useState(false)
+  const [schedulingId, setSchedulingId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const [ideasRes, draftsRes] = await Promise.all([
+      const [ideasRes, draftsRes, calendarRes] = await Promise.all([
         getDirections(projectId).catch(() => ({ data: [] as ContentDirection[] })),
         getDrafts(projectId).catch(() => ({ data: [] as Draft[] })),
+        getCalendar(projectId).catch(() => ({ data: [] as CalendarItem[] })),
       ])
       setIdeas(ideasRes.data ?? [])
       setDrafts(draftsRes.data ?? [])
+      setCalendar(calendarRes.data ?? [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load your library.')
     } finally {
@@ -121,11 +137,59 @@ function LibraryContent() {
     [projectId],
   )
 
+  // Which drafts already sit on the calendar
+  const scheduledByDraft = useMemo(() => {
+    const map = new Map<string, CalendarItem>()
+    for (const item of calendar) {
+      if (item.draft_id && item.status !== 'cancelled' && !map.has(item.draft_id)) map.set(item.draft_id, item)
+    }
+    return map
+  }, [calendar])
+
+  const schedule = useCallback(
+    async (draft: Draft) => {
+      setSchedulingId(draft.id)
+      setNotice(null)
+      try {
+        const res = await scheduleDraft(projectId, draft.id)
+        setCalendar((prev) => (prev.some((i) => i.id === res.data.item.id) ? prev : [...prev, res.data.item]))
+        setDrafts((prev) => prev.map((d) => (d.id === draft.id && d.status === 'PENDING' ? { ...d, status: 'APPROVED' } : d)))
+        setNotice(`${res.data.already ? 'Already scheduled' : 'Scheduled'} for ${slotLabel(res.data.item.scheduled_at)}. ${res.data.reason}`)
+      } catch (err) {
+        setNotice(err instanceof Error ? err.message : 'Could not schedule this draft.')
+      } finally {
+        setSchedulingId(null)
+      }
+    },
+    [projectId],
+  )
+
+  const plan = useCallback(async () => {
+    setPlanning(true)
+    setNotice(null)
+    try {
+      const res = await planWeek(projectId)
+      setCalendar((prev) => [...prev, ...res.data.items.filter((i) => !prev.some((p) => p.id === i.id))])
+      setNotice(
+        res.data.items.length === 0
+          ? 'Nothing to plan — approve a draft first.'
+          : `${res.data.items.length} draft${res.data.items.length > 1 ? 's' : ''} placed on your calendar: ${res.data.items
+              .map((i) => slotLabel(i.scheduled_at))
+              .join(' · ')}. ${res.data.reasons[0] ?? ''}`,
+      )
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : 'Could not plan the week.')
+    } finally {
+      setPlanning(false)
+    }
+  }, [projectId])
+
   const counts = {
     ideas: ideas.length,
     drafts: drafts.length,
     pending: drafts.filter((d) => d.status === 'PENDING').length,
     approved: drafts.filter((d) => d.status === 'APPROVED').length,
+    toPlan: drafts.filter((d) => d.status === 'APPROVED' && !scheduledByDraft.has(d.id)).length,
   }
 
   return (
@@ -179,8 +243,23 @@ function LibraryContent() {
                   {f === 'all' ? 'All' : STATUS_LABEL[f]}
                 </FilterChip>
               ))}
+          {tab === 'drafts' && counts.toPlan > 0 && (
+            <button type="button" onClick={() => void plan()} disabled={planning} className={cn(quiet, 'ml-1 border-primary-900 text-primary-900')}>
+              <CalendarPlus className={cn('size-3.5', planning && 'animate-pulse')} />
+              {planning ? 'Planning…' : `Plan my week (${counts.toPlan})`}
+            </button>
+          )}
         </div>
       </div>
+
+      {notice && tab === 'drafts' && (
+        <p className="mb-4 rounded-[12px] border border-secondary-400 bg-secondary-50 px-4 py-3 text-caption-1 text-primary-900">
+          {notice}{' '}
+          <Link href={`/projects/${projectId}/calendar`} className="font-semibold underline-offset-2 hover:underline">
+            Open calendar
+          </Link>
+        </p>
+      )}
 
       {loading && (
         <div className="flex h-[40vh] items-center justify-center">
@@ -314,16 +393,66 @@ function LibraryContent() {
                       {tips.length} coaching tip{tips.length > 1 ? 's' : ''}{draft.video_script ? ' · script included' : ''}
                     </p>
                   )}
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void decide(draft, 'APPROVED')}
-                      disabled={draft.status === 'APPROVED'}
-                      className={cn(lime, 'px-3 py-1.5')}
+                  {draft.performance && (
+                    <p
+                      className={cn(
+                        'mt-2 inline-flex flex-wrap items-center gap-x-2 rounded-[10px] border px-3 py-1.5 text-caption-2 font-medium',
+                        (draft.performance.vs_avg_interactions ?? 1) >= 1
+                          ? 'border-success-300 bg-success-50 text-success-700'
+                          : 'border-alpha-10 bg-alpha-5 text-alpha-60',
+                      )}
                     >
-                      <Check className="size-3.5" />
-                      Approve
-                    </button>
+                      <span className="font-semibold">Posted</span>
+                      <span>{draft.performance.likes} likes · {draft.performance.comments} comments{draft.performance.views ? ` · ${draft.performance.views} views` : ''}</span>
+                      {draft.performance.vs_avg_interactions != null && (
+                        <span className="font-semibold">
+                          {draft.performance.vs_avg_interactions >= 1 ? '+' : ''}
+                          {Math.round((draft.performance.vs_avg_interactions - 1) * 100)}% vs your average
+                        </span>
+                      )}
+                    </p>
+                  )}
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {scheduledByDraft.has(draft.id) ? (
+                      <Link
+                        href={`/projects/${projectId}/calendar`}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-success-300 bg-success-50 px-3 py-1.5 text-caption-1 font-semibold text-success-700"
+                      >
+                        <CalendarCheck className="size-3.5" />
+                        {scheduledByDraft.get(draft.id)!.status === 'published' ? 'Published' : 'Scheduled'} · {slotLabel(scheduledByDraft.get(draft.id)!.scheduled_at)}
+                      </Link>
+                    ) : draft.status === 'APPROVED' ? (
+                      <button
+                        type="button"
+                        onClick={() => void schedule(draft)}
+                        disabled={schedulingId === draft.id}
+                        className={cn(lime, 'px-3 py-1.5')}
+                      >
+                        <CalendarPlus className="size-3.5" />
+                        {schedulingId === draft.id ? 'Finding the best slot…' : 'Schedule'}
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => void decide(draft, 'APPROVED')}
+                          className={cn(lime, 'px-3 py-1.5')}
+                        >
+                          <Check className="size-3.5" />
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void schedule(draft)}
+                          disabled={schedulingId === draft.id}
+                          className={quiet}
+                          title="Approve and put it on the next best slot"
+                        >
+                          <CalendarPlus className="size-3.5" />
+                          {schedulingId === draft.id ? 'Scheduling…' : 'Approve & schedule'}
+                        </button>
+                      </>
+                    )}
                     <Link href={studioHref(projectId, `Revise "${title}" v${draft.version ?? 1}: `)} className={quiet}>
                       <Wand2 className="size-3.5" />
                       Refine in Studio

@@ -500,6 +500,19 @@ export function selectDirection(
 
 export type DraftStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
+/** How a posted draft did against the account's own averages at the last scrape */
+export interface DraftPerformance {
+  likes: number
+  comments: number
+  views: number
+  avg_likes: number
+  avg_comments: number
+  avg_views: number
+  vs_avg_likes: number | null
+  vs_avg_interactions: number | null
+  measured_at: string
+}
+
 export interface Draft {
   id: string
   direction_id: string
@@ -516,6 +529,10 @@ export interface Draft {
   tips?: Record<string, string>
   language?: string | null
   session_id?: string | null
+  /** Performance loop: set once the real post was matched to this draft */
+  published_content_id?: string | null
+  published_at?: string | null
+  performance?: DraftPerformance | null
   /** Joined from content_directions when available */
   direction?: Pick<ContentDirection, 'id' | 'title_pillar' | 'angle' | 'format'>
 }
@@ -585,6 +602,26 @@ export interface CreateCalendarItemPayload {
   scheduled_at: string
   platform: CalendarPlatform
   notes?: string
+}
+
+/** Approve → schedule: one draft onto the next best slot for this account's field (or a given date). */
+export function scheduleDraft(
+  projectId: string,
+  draftId: string,
+  opts: { scheduled_at?: string; platform?: CalendarPlatform } = {},
+) {
+  return request<{ data: { item: CalendarItem; reason: string; already: boolean } }>(
+    `/projects/${projectId}/calendar/schedule-draft`,
+    { method: 'POST', body: JSON.stringify({ draft_id: draftId, ...opts }) },
+  )
+}
+
+/** Every approved, unscheduled draft gets a slot over the coming days, best days first. */
+export function planWeek(projectId: string, draftIds?: string[]) {
+  return request<{ data: { items: CalendarItem[]; reasons: string[]; skipped: number } }>(
+    `/projects/${projectId}/calendar/plan-week`,
+    { method: 'POST', body: JSON.stringify(draftIds ? { draft_ids: draftIds } : {}) },
+  )
 }
 
 export function getCalendar(projectId: string, from?: string, to?: string) {
