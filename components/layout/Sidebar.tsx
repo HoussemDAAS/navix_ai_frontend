@@ -5,11 +5,10 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   BarChart3,
+  BookOpen,
   Building2,
   Calendar,
-  FileText,
   LayoutDashboard,
-  Lightbulb,
   LogOut,
   MessagesSquare,
   Palette,
@@ -66,8 +65,7 @@ function projectNav(projectId: string, persona: ProfilePersona | null): NavGroup
       label: 'Content',
       items: [
         { label: 'Studio', href: `${base}/studio`, icon: MessagesSquare },
-        { label: 'Directions', href: `${base}/directions`, icon: Lightbulb },
-        { label: 'Drafts', href: `${base}/drafts`, icon: FileText },
+        { label: 'Library', href: `${base}/library`, icon: BookOpen },
         { label: 'Calendar', href: `${base}/calendar`, icon: Calendar },
         { label: 'Brand kit', href: `${base}/brand-kit`, icon: Palette },
       ],

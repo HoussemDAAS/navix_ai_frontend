@@ -8,7 +8,7 @@ import {
   Palette,
   BarChart3,
   Lightbulb,
-  FileText,
+  MessagesSquare,
   Calendar,
   ArrowRight,
   CheckCircle2,
@@ -48,22 +48,6 @@ interface PipelineStep {
   icon: React.ElementType
   status: 'completed' | 'current' | 'available'
 }
-
-interface QuickLink {
-  label: string
-  description: string
-  href: (id: string) => string
-  icon: React.ElementType
-}
-
-const quickLinks: QuickLink[] = [
-  { label: 'Competitors', description: 'View and manage tracked competitors', href: (id) => `/projects/${id}/competitors`, icon: Users },
-  { label: 'Brand Kit', description: 'Define your voice, tone, and identity', href: (id) => `/projects/${id}/brand-kit`, icon: Palette },
-  { label: 'Analysis', description: 'Market insights and opportunity gaps', href: (id) => `/projects/${id}/analysis`, icon: BarChart3 },
-  { label: 'Directions', description: 'Strategic content pillars for your brand', href: (id) => `/projects/${id}/directions`, icon: Lightbulb },
-  { label: 'Drafts', description: 'Edit and refine your content', href: (id) => `/projects/${id}/drafts`, icon: FileText },
-  { label: 'Calendar', description: 'Plan and export your editorial calendar', href: (id) => `/projects/${id}/calendar`, icon: Calendar },
-]
 
 function formatFollowers(n: number | null): string {
   if (n == null) return '—'
@@ -288,14 +272,14 @@ function OverviewContent() {
           })
           .slice(0, 3)
 
-  const completions = [hasCompetitors, hasBrandKit, hasAnalysis, hasDirections, hasDrafts, hasCalendar]
+  // The Studio replaced the Directions and Drafts steps: creating content is one stage now
+  const completions = [hasCompetitors, hasBrandKit, hasAnalysis, hasDirections || hasDrafts, hasCalendar]
   const firstIncomplete = completions.findIndex((c) => !c)
   const stepConfigs: Array<{ label: string; href: (id: string) => string; icon: React.ElementType }> = [
     { label: 'Competitors', href: (id) => `/projects/${id}/competitors`, icon: Users },
     { label: 'Brand Kit', href: (id) => `/projects/${id}/brand-kit`, icon: Palette },
     { label: 'Analysis', href: (id) => `/projects/${id}/analysis`, icon: BarChart3 },
-    { label: 'Directions', href: (id) => `/projects/${id}/directions`, icon: Lightbulb },
-    { label: 'Drafts', href: (id) => `/projects/${id}/drafts`, icon: FileText },
+    { label: 'Studio', href: (id) => `/projects/${id}/studio`, icon: MessagesSquare },
     { label: 'Calendar', href: (id) => `/projects/${id}/calendar`, icon: Calendar },
   ]
   const pipelineSteps: PipelineStep[] = stepConfigs.map((cfg, i) => ({
@@ -659,12 +643,12 @@ function OverviewContent() {
                       </div>
                     </div>
                   )}
-                  {!hasDirections && (
+                  {!hasDrafts && (
                     <Link
-                      href={`/projects/${projectId}/directions`}
+                      href={`/projects/${projectId}/studio`}
                       className="inline-flex items-center justify-center gap-2 rounded-[12px] bg-secondary-300 px-4 py-2.5 text-caption-1 font-medium text-primary-900 border border-primary-900 shadow-signature transition-all duration-200 hover:bg-secondary-400 hover:shadow-[0px_3px_0px_0px_#191a23] active:shadow-none active:translate-y-[2px]"
                     >
-                      Generate content directions
+                      Turn this into content in the Studio
                       <ArrowRight className="size-3.5" />
                     </Link>
                   )}
@@ -674,34 +658,44 @@ function OverviewContent() {
           </motion.section>
         )}
 
-        {/* Quick Links */}
+        {/* Studio hand-off — the sidebar already lists every page, so no quick-link grid */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.4 }}
+          className="flex flex-col gap-4 rounded-[16px] border border-alpha-10 bg-white p-5 shadow-card sm:flex-row sm:items-center sm:justify-between"
         >
-          <h2 className="text-subheadline font-semibold text-primary-900 mb-4">
-            Quick Links
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {quickLinks.map((link) => {
-              const LinkIcon = link.icon
-              return (
-                <Link key={link.label} href={link.href(projectId)}>
-                  <div className="rounded-[12px] border border-alpha-10 bg-white p-4 shadow-card hover:border-secondary-400 hover:shadow-sm transition-all duration-200 group h-full">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-alpha-5 group-hover:bg-secondary-300/20 transition-colors">
-                        <LinkIcon className="size-4 text-alpha-60 group-hover:text-primary-900 transition-colors" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-caption-1 font-semibold text-primary-900">{link.label}</p>
-                        <p className="text-caption-2 text-alpha-60 mt-0.5">{link.description}</p>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              )
-            })}
+          <div className="flex items-center gap-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-secondary-300/20">
+              <MessagesSquare className="size-4 text-primary-900" />
+            </span>
+            <div>
+              <p className="text-body-2 font-semibold text-primary-900">
+                {hasDrafts ? `${drafts.length} draft${drafts.length > 1 ? 's' : ''} in your library` : 'Ready to make something?'}
+              </p>
+              <p className="text-caption-1 text-alpha-60">
+                {hasDrafts
+                  ? 'Keep going in the Studio, or approve what is waiting in the Library.'
+                  : 'Brainstorm with Navix in the Studio — it already knows your voice and your field.'}
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {hasDrafts && (
+              <Link
+                href={`/projects/${projectId}/library`}
+                className="inline-flex items-center gap-1.5 rounded-[10px] border border-alpha-10 px-3.5 py-2 text-caption-1 font-medium text-alpha-60 transition-colors hover:border-primary-900 hover:text-primary-900"
+              >
+                Library
+              </Link>
+            )}
+            <Link
+              href={`/projects/${projectId}/studio`}
+              className="inline-flex items-center justify-center gap-2 rounded-[12px] bg-secondary-300 px-4 py-2.5 text-caption-1 font-medium text-primary-900 border border-primary-900 shadow-signature transition-all duration-200 hover:bg-secondary-400 hover:shadow-[0px_3px_0px_0px_#191a23] active:shadow-none active:translate-y-[2px]"
+            >
+              Open Studio
+              <ArrowRight className="size-3.5" />
+            </Link>
           </div>
         </motion.div>
       </div>

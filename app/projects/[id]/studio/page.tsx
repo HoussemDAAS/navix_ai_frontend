@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useParams, useSearchParams } from 'next/navigation'
 import {
   ChevronDown,
   FileText,
@@ -130,6 +130,7 @@ interface Attachment {
 function StudioContent() {
   const params = useParams()
   const projectId = params.id as string
+  const searchParams = useSearchParams()
 
   const [sessions, setSessions] = useState<StudioSession[]>([])
   const [session, setSession] = useState<StudioSession | null>(null)
@@ -137,7 +138,8 @@ function StudioContent() {
   const [references, setReferences] = useState<StudioReference[]>([])
   const [pending, setPending] = useState<PendingTurn | null>(null)
   const [attachments, setAttachments] = useState<Attachment[]>([])
-  const [input, setInput] = useState('')
+  // The Library hands off with ?prompt= ("Draft in Studio", "Refine in Studio")
+  const [input, setInput] = useState(() => searchParams.get('prompt') ?? '')
   const [language, setLanguage] = useState(LANGUAGES[0])
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -808,7 +810,15 @@ function MessageRow({
 export default function StudioPage() {
   return (
     <DashboardShell>
-      <StudioContent />
+      <Suspense
+        fallback={
+          <div className="flex h-[60vh] items-center justify-center">
+            <Spinner size="lg" />
+          </div>
+        }
+      >
+        <StudioContent />
+      </Suspense>
     </DashboardShell>
   )
 }

@@ -28,12 +28,13 @@ export function initialsOf(name: string | null | undefined, fallback: string): s
 export const PIPELINE_STEPS: ReadonlyArray<{ key: PipelineStepKey; label: string }> = [
   { key: 'competitors', label: 'Competitors' },
   { key: 'analysis', label: 'Analysis' },
-  { key: 'drafts', label: 'Drafts' },
+  { key: 'drafts', label: 'Library' },
   { key: 'calendar', label: 'Calendar' },
 ]
 
 export function stepHref(projectId: string, step: PipelineStepKey): string {
-  return `/projects/${projectId}/${step}`
+  // Drafts live in the Library since the Studio became the way to create
+  return `/projects/${projectId}/${step === 'drafts' ? 'library' : step}`
 }
 
 /** Which stages already have real data behind them. */

@@ -419,7 +419,12 @@ export interface ContentDirection {
   angle: string | null
   format: string | null
   rationale: string | null
+  hook_suggestion?: string | null
+  cta_suggestion?: string | null
   selected?: boolean
+  /** 'studio' when it came out of a conversation, 'generated' from the batch job */
+  source?: 'studio' | 'generated' | string
+  session_id?: string | null
   created_at: string
 }
 
@@ -464,6 +469,14 @@ export interface Draft {
   user_feedback_notes: string | null
   status: DraftStatus
   created_at: string
+  hook_alternatives?: string[]
+  cta_alternatives?: string[]
+  /** Studio provenance: version chain, coaching tips, content language */
+  version?: number
+  parent_draft_id?: string | null
+  tips?: Record<string, string>
+  language?: string | null
+  session_id?: string | null
   /** Joined from content_directions when available */
   direction?: Pick<ContentDirection, 'id' | 'title_pillar' | 'angle' | 'format'>
 }
