@@ -800,6 +800,74 @@ export function getFieldAnalytics(projectId: string) {
   return request<{ data: FieldAnalytics }>(`/projects/${projectId}/analysis/field`)
 }
 
+// ── Weekly digest (Home): what moved, what stood out, what to make next ──
+
+export interface DigestPost {
+  post_url: string | null
+  thumbnail_url: string | null
+  caption: string | null
+  content_type: string | null
+  likes_count: number
+  comments_count: number
+  views_count: number
+  published_at: string | null
+  /** This post's interactions over the account's usual interactions */
+  vs_avg: number | null
+}
+
+export interface DigestIdea {
+  title: string
+  why: string
+  format: string | null
+  studio_prompt: string
+}
+
+export interface WeeklyDigest {
+  period: { from: string; to: string; days: number }
+  account: {
+    followers_now: number | null
+    followers_delta: number | null
+    engagement_now: number | null
+    engagement_delta: number | null
+    since: string | null
+    snapshots: number
+  }
+  you: {
+    posts: number
+    /** 7 when they posted this week, else 30 */
+    window_days: number
+    days_since_last_post: number | null
+    best_post: DigestPost | null
+  }
+  field: {
+    posts: number
+    window_days: number
+    accounts_posted: number
+    most_active: { handle: string; posts: number } | null
+    /** 7 when a post really broke out this week, else the month's best is shown */
+    breakout_window_days: number
+    breakout: (DigestPost & { competitor_id: string; handle: string; avatar_url: string | null }) | null
+  }
+  pipeline: {
+    pending_review: number
+    scheduled: number
+    next: { title: string; scheduled_at: string; platform: string } | null
+    posted: Array<{ caption: string | null; vs_avg_interactions: number | null; published_at: string | null }>
+  }
+  ai: {
+    headline: string | null
+    idea: DigestIdea | null
+    generated_at: string | null
+    stale: boolean
+  }
+}
+
+export function getWeeklyDigest(projectId: string, refresh = false) {
+  return request<{ data: WeeklyDigest }>(
+    `/projects/${projectId}/analysis/digest${refresh ? '?refresh=true' : ''}`,
+  )
+}
+
 // ── Deep profiles (competitor / self): posts + stats + grounded AI read ──
 
 export interface ProfilePost {

@@ -18,6 +18,7 @@ import { motion } from 'framer-motion'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { useWorkspace } from '@/components/layout/WorkspaceContext'
 import { ProjectHero } from '@/components/project/ProjectHero'
+import { WeeklyDigest } from '@/components/project/WeeklyDigest'
 import { AiMark } from '@/components/ui/ai-mark'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
@@ -331,6 +332,9 @@ function OverviewContent() {
             }}
           />
         </motion.div>
+
+        {/* This week — what moved, what stood out, what to make next */}
+        <WeeklyDigest projectId={projectId} reloadKey={reloadKey} className="mb-6" />
 
         {/* Progress Stepper */}
         <motion.div
