@@ -21,6 +21,8 @@ import { AiMark } from '@/components/ui/ai-mark'
 import { Spinner } from '@/components/ui/spinner'
 import { DraftCard, IdeaCard } from '@/components/studio/ArtifactCards'
 import { MemoryPanel } from '@/components/studio/MemoryPanel'
+import { Markdown } from '@/components/studio/Markdown'
+import { QuestionCard, TypingDots } from '@/components/studio/QuestionCard'
 import { addStudioLinkReference, streamStudioMessage, uploadStudioReference } from '@/lib/studio-stream'
 import { cn } from '@/lib/utils'
 import {
@@ -360,6 +362,12 @@ function StudioContent() {
             } else if (event.type === 'draft') {
               turn.artifacts.push({ type: 'draft' as const, ...event.draft })
               turn.tool = null
+            } else if (event.type === 'question') {
+              turn.artifacts.push({ type: 'question' as const, ...event.question })
+              turn.tool = null
+            } else if (event.type === 'suggestions') {
+              turn.artifacts.push({ type: 'suggestions' as const, suggestions: event.suggestions })
+              turn.tool = null
             } else if (event.type === 'error') {
               setError(event.message)
             }
@@ -501,26 +509,37 @@ function StudioContent() {
           )}
         >
           <div className="flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-6">
-            {messages.map((m) => (
-              <MessageRow key={m.id} message={m} projectId={projectId} onDraft={draftIdea} onRevise={reviseDraft} busy={busy} />
+            {messages.map((m, i) => (
+              <MessageRow
+                key={m.id}
+                message={m}
+                projectId={projectId}
+                onDraft={draftIdea}
+                onRevise={reviseDraft}
+                onSend={(text) => void send(text)}
+                busy={busy}
+                isLast={i === messages.length - 1 && !pending}
+                answered={messages.slice(i + 1).some((x) => x.role === 'user')}
+              />
             ))}
 
             {pending && (
               <div className="flex gap-3">
-                <AiMark size="sm" spinning className="mt-0.5" />
+                <AiMark size="sm" className="mt-0.5" />
                 <div className="min-w-0 flex-1 space-y-3">
-                  {pending.text && (
-                    <p className="whitespace-pre-wrap text-body-2 leading-relaxed text-primary-900">{pending.text}</p>
+                  {pending.text && <Markdown>{pending.text}</Markdown>}
+                  {pending.tool ? (
+                    <TypingDots label={`${TOOL_LABEL[pending.tool] ?? 'Working'}…`} />
+                  ) : (
+                    !pending.text && <TypingDots />
                   )}
-                  {pending.tool && (
-                    <p className="text-caption-1 text-alpha-60">{TOOL_LABEL[pending.tool] ?? 'Working'}…</p>
-                  )}
-                  {!pending.text && !pending.tool && <p className="text-caption-1 text-alpha-60">Thinking…</p>}
                   {pending.artifacts.map((a, i) =>
                     a.type === 'idea' ? (
                       <IdeaCard key={`p-${i}`} idea={a} onDraft={draftIdea} disabled />
                     ) : a.type === 'draft' ? (
                       <DraftCard key={`p-${i}`} draft={a} projectId={projectId} onRevise={reviseDraft} disabled />
+                    ) : a.type === 'question' ? (
+                      <QuestionCard key={`p-${i}`} question={a} answered={false} disabled onAnswer={() => undefined} />
                     ) : null,
                   )}
                 </div>
@@ -761,13 +780,21 @@ function MessageRow({
   projectId,
   onDraft,
   onRevise,
+  onSend,
   busy,
+  isLast,
+  answered,
 }: {
   message: StudioMessage
   projectId: string
   onDraft: (idea: StudioIdea) => void
   onRevise: (draft: StudioDraft) => void
+  onSend: (text: string) => void
   busy: boolean
+  /** Latest assistant message: its suggestion chips are live */
+  isLast: boolean
+  /** A user message came after this one: its question form is closed */
+  answered: boolean
 }) {
   if (message.role === 'user') {
     const attached = (message.artifacts ?? []).filter((a) => a.type === 'reference')
@@ -796,14 +823,27 @@ function MessageRow({
     <div className="flex gap-3">
       <AiMark size="sm" className="mt-0.5" />
       <div className="min-w-0 flex-1 space-y-3">
-        {message.content && (
-          <p className="whitespace-pre-wrap text-body-2 leading-relaxed text-primary-900">{message.content}</p>
-        )}
+        {message.content && <Markdown>{message.content}</Markdown>}
         {(message.artifacts ?? []).map((a, i) =>
           a.type === 'idea' ? (
             <IdeaCard key={a.id ?? `i-${i}`} idea={a} onDraft={onDraft} disabled={busy} />
           ) : a.type === 'draft' ? (
             <DraftCard key={a.id ?? `d-${i}`} draft={a} projectId={projectId} onRevise={onRevise} disabled={busy} />
+          ) : a.type === 'question' ? (
+            <QuestionCard key={`q-${i}`} question={a} answered={answered} disabled={busy} onAnswer={onSend} />
+          ) : a.type === 'suggestions' && isLast && !busy ? (
+            <div key={`s-${i}`} className="flex flex-wrap gap-2">
+              {a.suggestions.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => onSend(s)}
+                  className="rounded-full border border-primary-900/30 bg-white px-3 py-1.5 text-caption-1 font-medium text-primary-900 transition-colors hover:border-primary-900 hover:bg-secondary-50"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           ) : null,
         )}
       </div>

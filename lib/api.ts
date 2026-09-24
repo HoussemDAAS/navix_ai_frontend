@@ -185,10 +185,20 @@ export interface StudioReference {
   created_at: string
 }
 
+/** A decision the assistant asks for as a small form instead of prose */
+export interface StudioQuestion {
+  question: string
+  kind: 'single' | 'multi' | 'text'
+  options: Array<{ label: string; hint?: string }>
+  allow_other: boolean
+}
+
 export type StudioArtifact =
   | ({ type: 'idea' } & StudioIdea)
   | ({ type: 'draft' } & StudioDraft)
   | { type: 'reference'; id: string; title: string; kind: ReferenceKind }
+  | ({ type: 'question' } & StudioQuestion)
+  | { type: 'suggestions'; suggestions: string[] }
 
 export interface StudioMessage {
   id: string
@@ -204,6 +214,8 @@ export type StudioEvent =
   | { type: 'tool'; name: string; query?: string; hits?: number }
   | { type: 'ideas'; ideas: StudioIdea[] }
   | { type: 'draft'; draft: StudioDraft }
+  | { type: 'question'; question: StudioQuestion }
+  | { type: 'suggestions'; suggestions: string[] }
   | { type: 'saved'; message_id: string }
   | { type: 'done' }
   | { type: 'error'; message: string }
