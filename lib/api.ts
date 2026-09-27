@@ -886,6 +886,10 @@ export interface ProfilePost {
   engagement_rate: number | null
   duration_seconds: number | null
   published_at: string | null
+  /** What the post says (video transcript) and shows (vision description), once read */
+  transcript?: string | null
+  visual_summary?: string | null
+  media_language?: string | null
 }
 
 export interface CompetitorInsight {

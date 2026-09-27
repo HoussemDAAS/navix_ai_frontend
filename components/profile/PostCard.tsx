@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Heart, MessageCircle, Eye, Film, Video, Layers, Image as ImageIcon } from 'lucide-react'
+import { Heart, MessageCircle, Eye, Film, Video, Layers, Image as ImageIcon, Mic, ScanEye } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { avatarSrc } from '@/lib/avatar'
 import type { ProfilePost } from '@/lib/api'
@@ -78,6 +78,18 @@ export function PostCard({ post }: { post: ProfilePost }) {
         ) : (
           <p className="text-caption-1 text-alpha-40 italic">No caption</p>
         )}
+        {/* What Navix actually read from the media, not just the caption */}
+        {post.transcript ? (
+          <p className="mt-1.5 flex items-start gap-1.5 text-caption-2 text-alpha-60">
+            <Mic className="mt-0.5 size-3 shrink-0 text-secondary-600" />
+            <span className="line-clamp-2">{post.transcript}</span>
+          </p>
+        ) : post.visual_summary ? (
+          <p className="mt-1.5 flex items-start gap-1.5 text-caption-2 text-alpha-60">
+            <ScanEye className="mt-0.5 size-3 shrink-0 text-secondary-600" />
+            <span className="line-clamp-2">{post.visual_summary}</span>
+          </p>
+        ) : null}
         <p className="mt-1.5 text-caption-2 text-alpha-40">{fmtDate(post.published_at)}</p>
       </div>
     </article>
