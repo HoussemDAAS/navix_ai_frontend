@@ -65,8 +65,6 @@ const PROGRESS_STEPS = [
 const PLATFORMS: { value: CalendarPlatform; label: string }[] = [
   { value: 'instagram', label: 'Instagram' },
   { value: 'tiktok', label: 'TikTok' },
-  { value: 'youtube', label: 'YouTube' },
-  { value: 'facebook', label: 'Facebook' },
 ]
 
 function draftTitle(d: Draft): string {

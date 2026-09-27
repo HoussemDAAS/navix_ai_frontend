@@ -1,9 +1,9 @@
 'use client'
 
-import { Instagram, Youtube } from 'lucide-react'
+import { Instagram } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export type SocialPlatform = 'instagram' | 'tiktok' | 'youtube'
+export type SocialPlatform = 'instagram' | 'tiktok'
 
 interface SocialHandleInputProps {
   platform: SocialPlatform
@@ -29,12 +29,6 @@ const meta: Record<
     iconBg: 'bg-alpha-5 border-alpha-10',
     iconColor: 'text-primary-900',
   },
-  youtube: {
-    label: 'YouTube',
-    placeholder: '@channel',
-    iconBg: 'bg-destructive-50 border-destructive-200',
-    iconColor: 'text-destructive-600',
-  },
 }
 
 function TikTokIcon({ className }: { className?: string }) {
@@ -48,7 +42,6 @@ function TikTokIcon({ className }: { className?: string }) {
 const icons: Record<SocialPlatform, React.ReactNode> = {
   instagram: <Instagram className="size-4" />,
   tiktok: <TikTokIcon className="size-4" />,
-  youtube: <Youtube className="size-4" />,
 }
 
 /**

@@ -34,8 +34,6 @@ const TEXT_FIELDS = [
   'biography',
   'instagram_handle',
   'tiktok_handle',
-  'youtube_handle',
-  'facebook_handle',
   'niche_description',
 ] as const
 
@@ -46,13 +44,11 @@ interface SettingsForm extends Record<TextField, string> {
   seed_accounts: string[]
 }
 
-const PLATFORMS: SocialPlatform[] = ['instagram', 'tiktok', 'youtube', 'facebook']
+const PLATFORMS: SocialPlatform[] = ['instagram', 'tiktok']
 
 const HANDLE_FIELD: Record<SocialPlatform, TextField> = {
   instagram: 'instagram_handle',
   tiktok: 'tiktok_handle',
-  youtube: 'youtube_handle',
-  facebook: 'facebook_handle',
 }
 
 const MAX_KEYWORDS = 15
@@ -64,8 +60,6 @@ function toForm(profile: Profile): SettingsForm {
     biography: profile.biography ?? '',
     instagram_handle: profile.instagram_handle ?? '',
     tiktok_handle: profile.tiktok_handle ?? '',
-    youtube_handle: profile.youtube_handle ?? '',
-    facebook_handle: profile.facebook_handle ?? '',
     niche_description: profile.niche_description ?? '',
     keywords: profile.keywords ?? [],
     seed_accounts: profile.seed_accounts ?? [],

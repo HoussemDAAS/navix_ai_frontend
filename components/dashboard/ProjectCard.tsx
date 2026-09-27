@@ -21,7 +21,6 @@ export function ProjectCard({ project, stats, statsPending, index }: ProjectCard
   const platforms = [
     project.instagram_handle && 'Instagram',
     project.tiktok_handle && 'TikTok',
-    project.youtube_handle && 'YouTube',
   ].filter((p): p is string => Boolean(p))
 
   const completed = stats ? completedSteps(stats) : null

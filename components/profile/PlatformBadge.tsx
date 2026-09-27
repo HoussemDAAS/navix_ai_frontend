@@ -1,6 +1,6 @@
 'use client'
 
-import { Instagram, Youtube, Facebook } from 'lucide-react'
+import { Instagram } from 'lucide-react'
 import { TikTokIcon } from '@/components/settings/platform-icons'
 import { platformLabel } from '@/components/profile/utils'
 
@@ -10,8 +10,6 @@ export function PlatformBadge({ platform }: { platform: string | null }) {
   const icon =
     key === 'instagram' ? <Instagram className="size-3.5" /> :
     key === 'tiktok' ? <TikTokIcon className="size-3.5" /> :
-    key === 'youtube' ? <Youtube className="size-3.5" /> :
-    key === 'facebook' ? <Facebook className="size-3.5" /> :
     null
 
   return (

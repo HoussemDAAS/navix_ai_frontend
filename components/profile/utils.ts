@@ -44,10 +44,6 @@ export function profileUrl(handle: string, platform: string | null | undefined):
       return `https://www.instagram.com/${h}/`
     case 'tiktok':
       return `https://www.tiktok.com/@${h}`
-    case 'youtube':
-      return `https://www.youtube.com/@${h}`
-    case 'facebook':
-      return `https://www.facebook.com/${h}`
     default:
       return null
   }
@@ -59,10 +55,6 @@ export function platformLabel(platform: string | null | undefined): string {
       return 'Instagram'
     case 'tiktok':
       return 'TikTok'
-    case 'youtube':
-      return 'YouTube'
-    case 'facebook':
-      return 'Facebook'
     default:
       return 'Social'
   }

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRight, Plus, X, Link2, Sparkles, Instagram, Youtube, Facebook } from 'lucide-react'
+import { ArrowRight, Plus, X, Link2, Sparkles, Instagram } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { LimeButton } from '@/components/onboarding/LimeButton'
 import {
@@ -24,11 +24,9 @@ function TikTokIcon({ className }: { className?: string }) {
 const platformIcon: Record<SocialPlatform, React.ReactNode> = {
   instagram: <Instagram className="size-3.5" />,
   tiktok: <TikTokIcon className="size-3.5" />,
-  youtube: <Youtube className="size-3.5" />,
-  facebook: <Facebook className="size-3.5" />,
 }
 
-const MAX_LINKS = 4
+const MAX_LINKS = 2
 const MAX_SEEDS = 3
 const MIN_DESCRIPTION = 20
 const MIN_KEYWORDS = 3
@@ -73,7 +71,7 @@ export function SocialLinksStep({
 
   const links = value.social_links.length > 0 ? value.social_links : ['']
   const parsedLinks = links.map((l) => (l.trim() ? parseSocialLink(l) : null))
-  // Share links (vm.tiktok.com/…, facebook.com/share/…) are resolved server-side on save
+  // Share links (vm.tiktok.com/…, instagram.com/share/…) are resolved server-side on save
   const shareLinks = links.map((l, i) => !parsedLinks[i] && !!l.trim() && isShareLink(l))
   const validLinks = parsedLinks.filter(Boolean).length + shareLinks.filter(Boolean).length
   const invalidLinks = links.filter((l, i) => l.trim() && !parsedLinks[i] && !shareLinks[i]).length
@@ -165,7 +163,7 @@ export function SocialLinksStep({
                   </div>
                   {showInvalid && (
                     <p className="text-caption-2 text-destructive-500">
-                      Paste the full profile link — Instagram, TikTok, YouTube or Facebook.
+                      Paste the full profile link — Instagram or TikTok.
                     </p>
                   )}
                 </div>

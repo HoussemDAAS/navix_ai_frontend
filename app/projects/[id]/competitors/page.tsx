@@ -44,7 +44,7 @@ export interface MappedCompetitor {
   handle: string
   initials: string
   color: string
-  platform: 'Instagram' | 'TikTok' | 'YouTube'
+  platform: 'Instagram' | 'TikTok'
   confidenceScore: number
   inclusionReason: string
   dominantFormat: string
@@ -74,7 +74,6 @@ function mapCompetitor(c: Competitor, knownIds: Set<string> | null): MappedCompe
   const platformMap: Record<string, MappedCompetitor['platform']> = {
     instagram: 'Instagram',
     tiktok: 'TikTok',
-    youtube: 'YouTube',
   }
   const tags: string[] = []
   if (c.discovery_method === 'seed') tags.push('Your pick')
@@ -233,7 +232,6 @@ function CompetitorsContent() {
         entity_name: project.name,
         instagram_handle: project.instagram_handle ?? undefined,
         tiktok_handle: project.tiktok_handle ?? undefined,
-        facebook_handle: project.facebook_handle ?? undefined,
         niche_description: project.niche_description ?? undefined,
         keywords: project.keywords ?? undefined,
         seed_accounts: project.seed_accounts ?? undefined,
@@ -440,9 +438,14 @@ function CompetitorsContent() {
             <RefreshCw className={cn('size-4', retrying && 'animate-spin')} />
             {searchLabel}
           </button>
-          <button type="button" onClick={() => setShowAdd(true)} className={ctaClasses}>
+          <button
+            type="button"
+            onClick={() => setShowAdd(true)}
+            title="Add a competitor from an Instagram or TikTok profile link"
+            className={ctaClasses}
+          >
             <Plus className="size-4" />
-            Add
+            Add competitor
           </button>
         </div>
       </motion.div>

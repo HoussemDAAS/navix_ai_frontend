@@ -8,7 +8,7 @@ import { isShareLink, parseSocialLink, type SocialPlatform } from '@/lib/social-
 const SHARE_LINK_MESSAGE =
   'That is a share link. Open it, then paste the full profile URL shown in the address bar.'
 const INVALID_MESSAGE =
-  'We could not read a profile from that link. Paste a full Instagram, TikTok, YouTube or Facebook profile URL.'
+  'We could not read a profile from that link. Paste a full Instagram or TikTok profile URL.'
 
 interface PasteLinkInputProps {
   onResolved: (platform: SocialPlatform, handle: string) => void

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Check, X, Instagram, Youtube, ChevronRight } from 'lucide-react'
+import { Check, X, Instagram, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -45,7 +45,6 @@ function TikTokIcon({ className }: { className?: string }) {
 const platformIcons: Record<MappedCompetitor['platform'], React.ReactNode> = {
   Instagram: <Instagram className="size-3.5" />,
   TikTok: <TikTokIcon className="size-3.5" />,
-  YouTube: <Youtube className="size-3.5" />,
 }
 
 function getConfidenceBadge(score: number) {

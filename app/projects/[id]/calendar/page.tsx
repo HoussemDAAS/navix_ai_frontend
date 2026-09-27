@@ -12,8 +12,6 @@ import {
   Trash2,
   Instagram,
   Music2,
-  Youtube,
-  Facebook,
   AlertCircle,
   CheckCircle2,
 } from 'lucide-react'
@@ -55,19 +53,9 @@ const PLATFORM_STYLES: Record<CalendarPlatform, PlatformStyle> = {
     icon: Music2,
     pill: 'bg-primary-50 text-primary-900 border border-primary-200',
   },
-  youtube: {
-    label: 'YouTube',
-    icon: Youtube,
-    pill: 'bg-info-50 text-info-700 border border-info-200',
-  },
-  facebook: {
-    label: 'Facebook',
-    icon: Facebook,
-    pill: 'bg-info-100 text-info-900 border border-info-200',
-  },
 }
 
-const PLATFORM_OPTIONS: CalendarPlatform[] = ['instagram', 'tiktok', 'youtube', 'facebook']
+const PLATFORM_OPTIONS: CalendarPlatform[] = ['instagram', 'tiktok']
 const STATUS_OPTIONS: CalendarStatus[] = ['planned', 'published', 'cancelled']
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']

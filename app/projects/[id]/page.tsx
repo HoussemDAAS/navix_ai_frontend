@@ -595,6 +595,8 @@ function OverviewContent() {
                       {analysis.generated_at
                         ? `Analyzed ${new Date(analysis.generated_at).toLocaleDateString()}`
                         : 'From your latest market analysis'}
+                      {analysis.freshness?.stale &&
+                        ` · ${analysis.freshness.new_posts_since} new competitor posts since, worth updating`}
                     </p>
                   </div>
                 </div>

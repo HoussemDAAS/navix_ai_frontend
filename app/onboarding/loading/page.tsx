@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, Instagram, Youtube } from 'lucide-react'
+import { Check, Instagram } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { useOnboardingStore } from '@/stores/onboarding'
@@ -50,15 +50,6 @@ const crawlerSteps: CrawlerStep[] = [
       'Searching niche creators...',
       'Loading profile data...',
       'Analyzing content...',
-    ],
-  },
-  {
-    platform: 'YouTube',
-    icon: <Youtube className="size-5" />,
-    color: 'text-red-600',
-    bgColor: 'bg-red-50 border-red-200',
-    messages: [
-      'Matching channels...',
     ],
   },
 ]
@@ -153,7 +144,7 @@ export default function LoadingPage() {
     ['active', 'waiting', 'waiting'],
   )
   const hasCompleted = useRef(false)
-  const startTime = useRef(Date.now())
+  const [startTime] = useState(() => Date.now())
 
   // Route guard
   useEffect(() => {
@@ -181,7 +172,7 @@ export default function LoadingPage() {
         if (result.data && result.data.length > 0) {
           setCompetitorCount(result.data.length)
           // Don't complete until we've had results for a bit (wait for all webhooks)
-          if (result.data.length >= 5 || (Date.now() - startTime.current > 60_000)) {
+          if (result.data.length >= 5 || (Date.now() - startTime > 60_000)) {
             handleComplete(result.data.length)
           }
         }
@@ -191,7 +182,7 @@ export default function LoadingPage() {
     }, 4000)
 
     return () => clearInterval(poll)
-  }, [projectId, runIds, handleComplete])
+  }, [projectId, runIds, handleComplete, startTime])
 
   // Animate crawler steps
   useEffect(() => {
@@ -218,7 +209,7 @@ export default function LoadingPage() {
 
     // Progress bar
     const progressTimer = setInterval(() => {
-      const elapsed = (Date.now() - startTime.current) / 1000
+      const elapsed = (Date.now() - startTime) / 1000
       setProgress(Math.min(10 + (elapsed / 90) * 80, 90))
     }, 500)
 
@@ -227,7 +218,7 @@ export default function LoadingPage() {
       clearInterval(stepTimer)
       clearInterval(progressTimer)
     }
-  }, [])
+  }, [startTime])
 
   if (!runIds || runIds.length === 0) return null
 

@@ -258,6 +258,37 @@ export default function AnalysisPage() {
         {/* ─── RESULTS ─── */}
         {pageState === 'complete' && analysis && (
           <div className="space-y-6">
+            {/* Brief freshness: what arrived since it was written, and a one-click update */}
+            {analysis.freshness && (
+              <div
+                className={cn(
+                  'flex flex-col gap-3 rounded-[14px] border px-4 py-3 sm:flex-row sm:items-center sm:justify-between',
+                  analysis.freshness.stale ? 'border-secondary-400 bg-secondary-50' : 'border-alpha-10 bg-white',
+                )}
+              >
+                <p className="text-caption-1 text-primary-900">
+                  <span className="font-semibold">
+                    Brief from{' '}
+                    {analysis.freshness.generated_at
+                      ? new Date(analysis.freshness.generated_at).toLocaleDateString()
+                      : 'earlier'}
+                  </span>
+                  {analysis.freshness.new_posts_since > 0
+                    ? ` · ${analysis.freshness.new_posts_since} new competitor post${analysis.freshness.new_posts_since > 1 ? 's' : ''} collected since`
+                    : ' · no new competitor posts since'}
+                  {analysis.freshness.stale && ' — worth updating'}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleRunAnalysis}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-[10px] border border-primary-900 bg-white px-3.5 py-2 text-caption-1 font-semibold text-primary-900 shadow-signature transition-all hover:bg-secondary-50 active:translate-y-[2px] active:shadow-none"
+                >
+                  <RefreshCw className="size-3.5" />
+                  Update analysis
+                </button>
+              </div>
+            )}
+
             {/* Key Takeaways island */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}

@@ -51,8 +51,6 @@ export interface CreateProjectPayload {
   website?: string
   instagram_handle?: string
   tiktok_handle?: string
-  youtube_handle?: string
-  facebook_handle?: string
   niche_description?: string
   keywords?: string[]
   seed_accounts?: string[]
@@ -70,8 +68,6 @@ export interface Project {
   logo_url?: string | null
   instagram_handle: string | null
   tiktok_handle: string | null
-  youtube_handle: string | null
-  facebook_handle?: string | null
   niche_description?: string | null
   keywords?: string[] | null
   seed_accounts?: string[] | null
@@ -344,8 +340,6 @@ export interface DiscoverPayload {
   entity_name?: string
   instagram_handle?: string
   tiktok_handle?: string
-  youtube_handle?: string
-  facebook_handle?: string
   niche_description?: string
   keywords?: string[]
   target_market?: string
@@ -593,7 +587,7 @@ export function submitDraftFeedback(
 // Backed by the calendar module (src/calendar) — requires the calendar_items
 // migration (apps/backend-navix/src/calendar/migration.sql) applied in Supabase.
 
-export type CalendarPlatform = 'instagram' | 'tiktok' | 'youtube' | 'facebook'
+export type CalendarPlatform = 'instagram' | 'tiktok'
 export type CalendarStatus = 'planned' | 'published' | 'cancelled'
 
 export interface CalendarItem {
@@ -729,6 +723,13 @@ export interface AnalysisBrief {
   content_cadence: string | null
   key_takeaways: string[]
   generated_at?: string
+  /** How current the brief is against the competitor posts collected since it was written */
+  freshness?: {
+    generated_at: string | null
+    new_posts_since: number
+    age_days: number
+    stale: boolean
+  }
 }
 
 export function getAnalysis(projectId: string) {
@@ -985,8 +986,6 @@ export interface Profile {
   // Socials
   instagram_handle: string | null
   tiktok_handle: string | null
-  youtube_handle: string | null
-  facebook_handle: string | null
   /** Write-only: full profile links, parsed server-side into the handles above */
   social_links?: string[]
   has_social_presence: boolean

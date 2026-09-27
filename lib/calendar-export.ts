@@ -21,8 +21,6 @@ function escapeIcs(text: string): string {
 const PLATFORM_LABELS: Record<string, string> = {
   instagram: 'Instagram',
   tiktok: 'TikTok',
-  youtube: 'YouTube',
-  facebook: 'Facebook',
 }
 
 export function buildIcs(items: CalendarItem[]): string {
