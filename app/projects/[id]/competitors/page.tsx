@@ -142,6 +142,22 @@ function Section({
   )
 }
 
+/** A job killed by a backend restart restarts on its own; say so instead of "problem". */
+function wasInterrupted(error: string | null | undefined): boolean {
+  return !!error && error.startsWith('Interrupted')
+}
+
+function discoveryErrorTitle(error: string | null | undefined): string {
+  return wasInterrupted(error) ? 'Search interrupted' : 'Discovery hit a problem'
+}
+
+function discoveryErrorText(error: string | null | undefined, fallback: string): string {
+  if (wasInterrupted(error)) {
+    return 'The backend restarted while the search was running. It picks the search up again on its own within a minute; if nothing moves, use Search again.'
+  }
+  return error || fallback
+}
+
 function CompetitorsContent() {
   const params = useParams()
   const projectId = params.id as string
@@ -347,12 +363,12 @@ function CompetitorsContent() {
         <div className="min-w-0 flex-1">
           <p className="text-body-2 font-semibold text-primary-900">
             {discovery.status === 'failed'
-              ? 'Discovery hit a problem'
+              ? discoveryErrorTitle(discovery.error)
               : discovery.message || STAGE_LABEL[discovery.stage ?? ''] || 'Working…'}
           </p>
           <p className="mt-0.5 text-caption-2 text-alpha-60">
             {discovery.status === 'failed'
-              ? discovery.error || 'Try again in a moment.'
+              ? discoveryErrorText(discovery.error, 'Try again in a moment.')
               : [
                   discovery.counts.candidates > 0 ? `${discovery.counts.candidates} accounts found` : null,
                   discovery.counts.enriched > 0 ? `${discovery.counts.enriched} analyzed` : null,
@@ -478,11 +494,11 @@ function CompetitorsContent() {
                     <Search className="size-6 text-primary-btn" />
                   </div>
                   <h2 className="mb-2 text-h5 font-bold text-primary-900">
-                    {discovery?.status === 'failed' ? 'Discovery hit a problem' : 'No competitors yet'}
+                    {discovery?.status === 'failed' ? discoveryErrorTitle(discovery.error) : 'No competitors yet'}
                   </h2>
                   <p className="mb-6 max-w-md text-body-2 text-alpha-60">
                     {discovery?.status === 'failed'
-                      ? discovery.error || 'Something went wrong during the search.'
+                      ? discoveryErrorText(discovery.error, 'Something went wrong during the search.')
                       : 'Run discovery: we read your profile, scan Instagram & TikTok, analyze every account we find, and keep only the ones worth benchmarking. It takes a few minutes.'}
                   </p>
                   <div className="flex flex-wrap items-center justify-center gap-2">
