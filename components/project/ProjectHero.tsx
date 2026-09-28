@@ -38,8 +38,17 @@ interface ProjectHeroProps {
 export function ProjectHero({ project, persona, freshness, className }: ProjectHeroProps) {
   const [broken, setBroken] = useState(false)
 
-  const src = avatarSrc(project.avatar_url || project.logo_url)
+  // The uploaded logo is the brand's chosen face; the scraped photo fills in when there is none
+  const src = avatarSrc(project.logo_url || project.avatar_url)
   const handle = project.instagram_handle || project.tiktok_handle
+  // An agency's project is a client, and the client is a brand or a creator
+  const personaLabel = !persona
+    ? null
+    : persona === 'agency'
+      ? project.persona === 'creator'
+        ? 'Client · Creator'
+        : 'Client · Brand'
+      : personaLabels[persona]
   const updated = relativeTime(project.last_scraped_at)
   const stats = [
     project.followers_count != null && { label: 'Followers', value: project.followers_count },
@@ -89,9 +98,9 @@ export function ProjectHero({ project, persona, freshness, className }: ProjectH
             )}
 
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              {persona && (
+              {personaLabel && (
                 <span className="inline-flex items-center rounded-full border border-primary-900 bg-secondary-300 px-2.5 py-0.5 text-caption-2 font-semibold text-primary-900">
-                  {personaLabels[persona]}
+                  {personaLabel}
                 </span>
               )}
               {project.niche && (

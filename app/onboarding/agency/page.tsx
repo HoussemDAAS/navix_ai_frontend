@@ -9,11 +9,10 @@ import { Label } from '@/components/ui/label'
 import { StepShell } from '@/components/onboarding/StepShell'
 import { LimeButton } from '@/components/onboarding/LimeButton'
 import { CountryPicker } from '@/components/onboarding/CountryPicker'
-import { SocialLinksStep } from '@/components/onboarding/SocialLinksStep'
 import { LogoUploader } from '@/components/onboarding/LogoUploader'
 import { TransitionStep } from '@/components/onboarding/TransitionStep'
 import { cn } from '@/lib/utils'
-import { updateProfile, getProjects, type Profile } from '@/lib/api'
+import { updateProfile } from '@/lib/api'
 import { useOnboardingStore } from '@/stores/onboarding'
 
 const AGENCY_NICHES = [
@@ -33,10 +32,30 @@ const AGENCY_NICHES = [
   'Entertainment & Media',
 ]
 
-type StepIdx = 0 | 1 | 2
+const AGENCY_TIPS = [
+  {
+    title: 'One workspace per client',
+    body: 'Each client gets its own competitors, analysis, Studio, Library and calendar.',
+  },
+  {
+    title: 'Brand or creator',
+    body: 'Tell Navix what each client is. The AI reads the field and writes in that client’s voice, not yours.',
+  },
+  {
+    title: 'Your agency too',
+    body: 'Want content for your own accounts? Add your agency as a client from the Clients page.',
+  },
+]
 
-const TOTAL_STEPS = 3
+type StepIdx = 0 | 1
 
+const TOTAL_STEPS = 2
+
+/**
+ * An agency is not a brand: it manages client projects. Onboarding only sets
+ * up the agency itself (name, logo, focus) and lands on the Clients page,
+ * where each client is created, read and analysed on its own.
+ */
 export default function AgencyOnboardingPage() {
   const router = useRouter()
   const draft = useOnboardingStore((s) => s.draft)
@@ -57,28 +76,6 @@ export default function AgencyOnboardingPage() {
     setErrors((prev) => (prev[name] ? { ...prev, [name]: false } : prev))
   }
 
-  async function save(
-    patch: Partial<Omit<Profile, 'id'>>,
-    next: StepIdx | 'done',
-  ): Promise<void> {
-    setSaving(true)
-    setError(null)
-    try {
-      await updateProfile(patch)
-      if (next === 'done') {
-        setOnboardingStep('completed')
-      } else {
-        const stepMap = ['identity', 'socials', 'scraping'] as const
-        setOnboardingStep(stepMap[next])
-        setStep(next)
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save. Try again.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
   /* ── Step 1: Identity ────────────────────────────────────────────── */
 
   async function handleIdentitySubmit(e: React.FormEvent) {
@@ -93,62 +90,32 @@ export default function AgencyOnboardingPage() {
       return
     }
 
-    await save(
-      {
+    setSaving(true)
+    setError(null)
+    try {
+      // Completing here is deliberate: no project, no scrape, no discovery for the
+      // agency itself. Clients are created from the Clients page.
+      await updateProfile({
         persona: 'agency',
         entity_name: draft.entity_name.trim(),
         entity_logo_url: draft.entity_logo_url,
         website_url: draft.website_url.trim() || null,
         country: draft.country,
         niche: draft.niche,
-        onboarding_step: 'socials',
-      },
-      1,
-    )
-  }
-
-  /* ── Step 2: Socials ─────────────────────────────────────────────── */
-
-  async function handleSocialsSubmit() {
-    // Setting onboarding_step to 'scraping' makes the backend create the
-    // agency workspace, scrape the pasted accounts and launch discovery.
-    const links = draft.has_social_presence
-      ? draft.social_links.map((l) => l.trim()).filter(Boolean)
-      : []
-    await save(
-      {
-        social_links: links,
-        has_social_presence: draft.has_social_presence,
-        niche_description: draft.niche_description.trim() || null,
-        keywords: draft.keywords,
-        seed_accounts: draft.seed_accounts.map((s) => s.trim()).filter(Boolean),
-        onboarding_step: 'scraping',
-      },
-      2,
-    )
-  }
-
-  async function handleTransitionComplete() {
-    try {
-      await updateProfile({
         onboarding_step: 'completed',
         onboarding_completed: true,
       })
       setOnboardingStep('completed')
-    } catch {
-      // If the final patch fails, still try to route the user forward.
+      setStep(1)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save. Try again.')
+    } finally {
+      setSaving(false)
     }
-    try {
-      const projects = await getProjects()
-      const first = projects.data?.[0]
-      if (first) {
-        router.replace(`/projects/${first.id}/competitors`)
-        return
-      }
-    } catch {
-      // Fall through to dashboard.
-    }
-    router.replace('/dashboard')
+  }
+
+  function handleTransitionComplete() {
+    router.replace('/projects')
   }
 
   return (
@@ -159,7 +126,7 @@ export default function AgencyOnboardingPage() {
             step={1}
             total={TOTAL_STEPS}
             title="Tell us about your agency"
-            subtitle="Set up your workspace once. You'll spin up a fresh project for each client right from your dashboard."
+            subtitle="Set up your agency once. Each client then gets its own workspace, added from your Clients page."
             onBack={() => router.push('/onboarding/account-type')}
             backLabel="Change account type"
           >
@@ -225,10 +192,10 @@ export default function AgencyOnboardingPage() {
 
               <div className="space-y-1.5">
                 <Label className="text-caption-1 font-semibold text-primary-900">
-                  Where do most of your clients live?
+                  What kind of clients do you work with?
                 </Label>
                 <p className="text-caption-2 text-alpha-50 -mt-0.5 mb-1.5">
-                  We use this as a starting point. You can change it per client project.
+                  A starting point only. Every client project has its own niche.
                 </p>
                 <div
                   className={cn(
@@ -279,37 +246,11 @@ export default function AgencyOnboardingPage() {
       )}
 
       {step === 1 && (
-        <motion.div key="socials" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <StepShell
-            step={2}
-            total={TOTAL_STEPS}
-            title="Your agency's own channels"
-            subtitle="Paste the links to your agency's profiles so we can learn from the work you publish. You'll add each client's accounts in their own project."
-            onBack={() => setStep(0)}
-          >
-            <SocialLinksStep
-              value={{
-                social_links: draft.social_links,
-                has_social_presence: draft.has_social_presence,
-                niche_description: draft.niche_description,
-                keywords: draft.keywords,
-                seed_accounts: draft.seed_accounts,
-              }}
-              onChange={(patch) => patchDraft(patch)}
-              onSubmit={handleSocialsSubmit}
-              saving={saving}
-              error={error}
-              descriptionPlaceholder="e.g. Social media agency in Tunis for restaurants and beauty salons: reels, menu shoots, promo campaigns."
-            />
-          </StepShell>
-        </motion.div>
-      )}
-
-      {step === 2 && (
         <motion.div key="transition" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <TransitionStep
             title="Setting up your agency workspace..."
-            subtitle="Once you're in, hit New project to create a workspace for your first client."
+            subtitle="Next: add your first client. Navix reads their accounts and finds their competitors."
+            tips={AGENCY_TIPS}
             durationMs={2500}
             onComplete={handleTransitionComplete}
           />

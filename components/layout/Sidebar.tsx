@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { avatarSrc } from '@/lib/avatar'
 import { supabase } from '@/lib/supabase/client'
 import { useSidebarStore } from '@/stores/sidebar'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -123,14 +124,26 @@ function NavLink({
 
 /** Agencies work per client: the current one is always visible at the top. */
 function ClientSwitcher({ project, onNavigate }: { project: Project; onNavigate?: () => void }) {
+  const [broken, setBroken] = useState(false)
+  const src = avatarSrc(project.logo_url || project.avatar_url)
   return (
     <div className="mx-3 mb-3 rounded-[12px] border border-alpha-10 bg-alpha-5/60 px-3 py-2.5">
       <p className="text-caption-2 font-semibold uppercase tracking-wide text-alpha-40">Client</p>
       <div className="mt-1 flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-primary-900 text-caption-2 font-bold text-secondary-300">
-            {projectInitials(project.name)}
-          </span>
+          {src && !broken ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={src}
+              alt={project.name}
+              onError={() => setBroken(true)}
+              className="size-7 shrink-0 rounded-[8px] border border-alpha-10 object-cover"
+            />
+          ) : (
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-primary-900 text-caption-2 font-bold text-secondary-300">
+              {projectInitials(project.name)}
+            </span>
+          )}
           <span className="truncate text-caption-1 font-semibold text-primary-900">{project.name}</span>
         </div>
         <Link

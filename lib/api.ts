@@ -47,7 +47,10 @@ export interface CreateProjectPayload {
   name: string
   niche: string
   location?: string
+  /** What the project is: 'ecommerce' (a brand) or 'creator'. Agencies set it per client. */
   persona?: string
+  /** Uploaded logo as a data URL; the API stores it and returns a public URL */
+  logo_url?: string
   website?: string
   instagram_handle?: string
   tiktok_handle?: string

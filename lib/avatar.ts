@@ -7,5 +7,7 @@
 export function avatarSrc(url: string | null | undefined): string | null {
   if (!url) return null
   if (url.includes('/storage/v1/object/public/')) return url
+  // An uploaded logo that never reached storage is a data URL: render it as is
+  if (url.startsWith('data:')) return url
   return `/api/image-proxy?url=${encodeURIComponent(url)}`
 }

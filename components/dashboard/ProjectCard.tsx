@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { ArrowRight, FolderOpen, Globe, Loader2, MapPin, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { avatarSrc } from '@/lib/avatar'
 import { PIPELINE_STEPS, completedSteps } from './utils'
 import type { ProjectStats } from './types'
 import type { Project } from '@/lib/api'
@@ -25,6 +26,7 @@ export function ProjectCard({ project, stats, statsPending, index }: ProjectCard
 
   const completed = stats ? completedSteps(stats) : null
   const doneCount = completed ? PIPELINE_STEPS.filter((s) => completed[s.key]).length : 0
+  const logo = avatarSrc(project.logo_url || project.avatar_url)
 
   return (
     <motion.div
@@ -38,9 +40,18 @@ export function ProjectCard({ project, stats, statsPending, index }: ProjectCard
       >
         <div>
           <div className="mb-3 flex items-start justify-between">
-            <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-secondary-300/20">
-              <FolderOpen className="size-5 text-primary-900" />
-            </div>
+            {logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logo}
+                alt={project.name}
+                className="h-10 w-10 rounded-[10px] border border-alpha-10 object-cover"
+              />
+            ) : (
+              <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-secondary-300/20">
+                <FolderOpen className="size-5 text-primary-900" />
+              </div>
+            )}
             <ArrowRight className="size-4 text-alpha-30 transition-all group-hover:translate-x-0.5 group-hover:text-primary-900" />
           </div>
 
