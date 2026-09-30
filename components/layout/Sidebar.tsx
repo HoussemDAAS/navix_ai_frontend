@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
+  ArrowLeft,
   BarChart3,
   BookOpen,
-  Building2,
   Calendar,
+  FolderOpen,
   LayoutDashboard,
   LogOut,
   MessagesSquare,
@@ -24,7 +25,7 @@ import { avatarSrc } from '@/lib/avatar'
 import { supabase } from '@/lib/supabase/client'
 import { useSidebarStore } from '@/stores/sidebar'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import type { ProfilePersona, Project } from '@/lib/api'
+import type { Profile, ProfilePersona, Project } from '@/lib/api'
 import { invalidateWorkspace, useWorkspace, type Workspace } from './WorkspaceContext'
 
 interface NavItem {
@@ -42,12 +43,16 @@ interface NavGroup {
 
 const PROJECT_PATH = /^\/projects\/([0-9a-f-]{36})(?:\/|$)/i
 
-/** The sidebar IS the project for every persona; only the words change. */
+/**
+ * Two levels. A brand or a creator IS its project, so the sidebar is always the
+ * project menu. An agency is a box that holds projects: at its own level it sees
+ * its portfolio, and only once it opens a project does the sidebar become that
+ * project's menu, with a way back.
+ */
 function projectNav(projectId: string, persona: ProfilePersona | null): NavGroup[] {
   const base = `/projects/${projectId}`
   const isAgency = persona === 'agency'
-  const profileLabel =
-    persona === 'creator' ? 'My profile' : isAgency ? 'Client profile' : 'Brand profile'
+  const profileLabel = persona === 'creator' ? 'My profile' : isAgency ? 'Profile' : 'Brand profile'
   return [
     {
       items: [
@@ -74,18 +79,48 @@ function projectNav(projectId: string, persona: ProfilePersona | null): NavGroup
   ]
 }
 
+/** The agency's own level: its portfolio. */
+const PORTFOLIO_NAV: NavGroup[] = [
+  {
+    items: [
+      { label: 'Home', href: '/dashboard', icon: LayoutDashboard, exact: true },
+      { label: 'Projects', href: '/projects', icon: FolderOpen },
+    ],
+  },
+]
+
 function isActive(item: NavItem, pathname: string): boolean {
   return item.exact ? pathname === item.href : pathname.startsWith(item.href)
 }
 
-function projectInitials(name: string): string {
+function initials(name: string): string {
   return (
     name
       .trim()
       .split(/\s+/)
       .slice(0, 2)
       .map((w) => w[0]?.toUpperCase() ?? '')
-      .join('') || 'C'
+      .join('') || 'N'
+  )
+}
+
+function Thumb({ src, name }: { src: string | null; name: string }) {
+  const [broken, setBroken] = useState(false)
+  if (src && !broken) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={name}
+        onError={() => setBroken(true)}
+        className="size-8 shrink-0 rounded-[8px] border border-alpha-10 object-cover"
+      />
+    )
+  }
+  return (
+    <span className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-primary-900 text-caption-2 font-bold text-secondary-300">
+      {initials(name)}
+    </span>
   )
 }
 
@@ -122,38 +157,39 @@ function NavLink({
   )
 }
 
-/** Agencies work per client: the current one is always visible at the top. */
-function ClientSwitcher({ project, onNavigate }: { project: Project; onNavigate?: () => void }) {
-  const [broken, setBroken] = useState(false)
-  const src = avatarSrc(project.logo_url || project.avatar_url)
+/** The agency itself, shown at its own level. */
+function AgencyHeader({ profile }: { profile: Profile }) {
+  const name = profile.entity_name || profile.full_name || 'Your agency'
+  return (
+    <div className="mx-3 mb-3 flex items-center gap-2.5 rounded-[12px] border border-alpha-10 bg-alpha-5/60 px-3 py-2.5">
+      <Thumb src={avatarSrc(profile.entity_logo_url || profile.avatar_url)} name={name} />
+      <div className="min-w-0">
+        <p className="truncate text-caption-1 font-semibold text-primary-900">{name}</p>
+        <p className="text-caption-2 text-alpha-40">Agency</p>
+      </div>
+    </div>
+  )
+}
+
+/** The project the agency opened: the box we are inside, and the way out. */
+function ProjectBlock({ project, onNavigate }: { project: Project; onNavigate?: () => void }) {
+  const type = project.persona === 'creator' ? 'Creator' : 'Brand'
   return (
     <div className="mx-3 mb-3 rounded-[12px] border border-alpha-10 bg-alpha-5/60 px-3 py-2.5">
-      <p className="text-caption-2 font-semibold uppercase tracking-wide text-alpha-40">Client</p>
-      <div className="mt-1 flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          {src && !broken ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={src}
-              alt={project.name}
-              onError={() => setBroken(true)}
-              className="size-7 shrink-0 rounded-[8px] border border-alpha-10 object-cover"
-            />
-          ) : (
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-primary-900 text-caption-2 font-bold text-secondary-300">
-              {projectInitials(project.name)}
-            </span>
-          )}
-          <span className="truncate text-caption-1 font-semibold text-primary-900">{project.name}</span>
+      <Link
+        href="/projects"
+        onClick={onNavigate}
+        className="inline-flex items-center gap-1 text-caption-2 font-semibold uppercase tracking-wide text-alpha-40 transition-colors hover:text-primary-900"
+      >
+        <ArrowLeft className="size-3" />
+        All projects
+      </Link>
+      <div className="mt-1.5 flex items-center gap-2.5">
+        <Thumb src={avatarSrc(project.logo_url || project.avatar_url)} name={project.name} />
+        <div className="min-w-0">
+          <p className="truncate text-caption-1 font-semibold text-primary-900">{project.name}</p>
+          <p className="text-caption-2 text-alpha-40">{type}</p>
         </div>
-        <Link
-          href="/projects"
-          onClick={onNavigate}
-          className="shrink-0 rounded-[8px] p-1 text-alpha-40 transition-colors hover:bg-white hover:text-primary-900"
-          aria-label="Manage clients"
-        >
-          <Building2 className="size-4" />
-        </Link>
       </div>
     </div>
   )
@@ -176,20 +212,24 @@ function SidebarContent({
   onNavigate,
   onSignOut,
 }: SidebarContentProps) {
-  const { projects, primaryProject, persona, singleBrand, loading } = workspace
+  const { profile, projects, primaryProject, persona, singleBrand, loading } = workspace
 
-  // The project in the URL wins; anywhere else (settings) the primary project stands in.
+  // A single-brand account lives inside its one project. Only a KNOWN agency is
+  // a portfolio: while the profile is loading or failed to load, the account is
+  // treated as single-brand so the project menu never disappears under a creator.
+  const isAgency = persona === 'agency'
   const match = pathname.match(PROJECT_PATH)
-  const current = (match && projects.find((p) => p.id === match[1])) || primaryProject
+  const opened = (match && projects.find((p) => p.id === match[1])) || null
+  const current = opened ?? (isAgency ? null : primaryProject)
 
   const groups: NavGroup[] = current
     ? projectNav(current.id, persona)
-    : [{ items: [{ label: 'Home', href: '/dashboard', icon: LayoutDashboard, exact: true }] }]
+    : isAgency
+      ? PORTFOLIO_NAV
+      : [{ items: [{ label: 'Home', href: '/dashboard', icon: LayoutDashboard, exact: true }] }]
 
   const accountItems: NavItem[] = [
-    ...(!singleBrand && projects.length > 0
-      ? [{ label: 'Clients', href: '/projects', icon: Building2 }]
-      : []),
+    ...(!singleBrand && current ? [{ label: 'Projects', href: '/projects', icon: FolderOpen }] : []),
     { label: 'Settings', href: '/settings', icon: Settings },
   ]
 
@@ -205,7 +245,8 @@ function SidebarContent({
         </Link>
       </div>
 
-      {!singleBrand && current && <ClientSwitcher project={current} onNavigate={onNavigate} />}
+      {isAgency && current && <ProjectBlock project={current} onNavigate={onNavigate} />}
+      {isAgency && !current && profile && <AgencyHeader profile={profile} />}
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 pt-1">

@@ -29,7 +29,7 @@ export function CreatorScoreCard({ score, postCount }: CreatorScoreCardProps) {
         <h2 className="text-body-2 font-bold text-primary-900">Navix Creator Score</h2>
       </div>
       <p className="mt-1 text-caption-1 text-alpha-60">
-        Computed live from your {postCount} scraped posts and your field — no AI, just math.
+        Computed live from {postCount} scraped posts and the field. No AI, just math.
       </p>
 
       <div className="mt-5 flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:gap-8">

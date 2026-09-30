@@ -34,8 +34,8 @@ const AGENCY_NICHES = [
 
 const AGENCY_TIPS = [
   {
-    title: 'One workspace per client',
-    body: 'Each client gets its own competitors, analysis, Studio, Library and calendar.',
+    title: 'One project per client',
+    body: 'Each project has its own competitors, analysis, Studio, Library and calendar.',
   },
   {
     title: 'Brand or creator',
@@ -43,7 +43,7 @@ const AGENCY_TIPS = [
   },
   {
     title: 'Your agency too',
-    body: 'Want content for your own accounts? Add your agency as a client from the Clients page.',
+    body: 'Want content for your own accounts? Add your agency as a project from the Projects page.',
   },
 ]
 
@@ -94,7 +94,7 @@ export default function AgencyOnboardingPage() {
     setError(null)
     try {
       // Completing here is deliberate: no project, no scrape, no discovery for the
-      // agency itself. Clients are created from the Clients page.
+      // agency itself. Client projects are created from the Projects page.
       await updateProfile({
         persona: 'agency',
         entity_name: draft.entity_name.trim(),
@@ -126,7 +126,7 @@ export default function AgencyOnboardingPage() {
             step={1}
             total={TOTAL_STEPS}
             title="Tell us about your agency"
-            subtitle="Set up your agency once. Each client then gets its own workspace, added from your Clients page."
+            subtitle="Set up your agency once. Each client then becomes a project of its own, created from your Projects page."
             onBack={() => router.push('/onboarding/account-type')}
             backLabel="Change account type"
           >
@@ -249,7 +249,7 @@ export default function AgencyOnboardingPage() {
         <motion.div key="transition" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <TransitionStep
             title="Setting up your agency workspace..."
-            subtitle="Next: add your first client. Navix reads their accounts and finds their competitors."
+            subtitle="Next: create your first project, a client brand or creator. Navix reads their accounts and finds their competitors."
             tips={AGENCY_TIPS}
             durationMs={2500}
             onComplete={handleTransitionComplete}

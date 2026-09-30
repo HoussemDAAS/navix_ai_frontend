@@ -7,7 +7,7 @@ import type { ProfilePersona } from '@/lib/api'
 const OPTIONS: Array<{ persona: ProfilePersona; label: string; hint: string; icon: LucideIcon }> = [
   { persona: 'creator', label: 'Content creator', hint: 'One project: your own brand.', icon: UserRound },
   { persona: 'ecommerce', label: 'E-commerce brand', hint: 'Your store, straight into its project.', icon: Store },
-  { persona: 'agency', label: 'Marketing agency', hint: 'Up to 5 clients, one workspace each.', icon: Building2 },
+  { persona: 'agency', label: 'Marketing agency', hint: 'Up to 5 projects, one per client.', icon: Building2 },
 ]
 
 interface AccountTypeSwitchProps {

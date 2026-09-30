@@ -46,8 +46,8 @@ export function ProjectHero({ project, persona, freshness, className }: ProjectH
     ? null
     : persona === 'agency'
       ? project.persona === 'creator'
-        ? 'Client · Creator'
-        : 'Client · Brand'
+        ? 'Creator'
+        : 'Brand'
       : personaLabels[persona]
   const updated = relativeTime(project.last_scraped_at)
   const stats = [

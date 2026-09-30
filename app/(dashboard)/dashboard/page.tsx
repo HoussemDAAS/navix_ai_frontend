@@ -50,7 +50,7 @@ export default function DashboardPage() {
   }, [redirectTo, router])
 
   // What remains here is the agency portfolio (and brand-new accounts without a project).
-  const noun = persona === 'agency' ? 'client' : 'project'
+  const noun = 'project'
 
   const recentProjects = useMemo(
     () =>
@@ -105,11 +105,11 @@ export default function DashboardPage() {
     const list: StatTileData[] = [
       {
         key: 'projects',
-        label: noun === 'client' ? 'Clients' : 'Projects',
+        label: 'Projects',
         value: projects.length,
         hint:
-          noun === 'client'
-            ? 'under management'
+          persona === 'agency'
+            ? 'one per client'
             : projects.length === 1
               ? 'workspace'
               : 'workspaces',
@@ -147,7 +147,7 @@ export default function DashboardPage() {
     }
 
     return list
-  }, [projects.length, loadedStats, noun])
+  }, [projects.length, loadedStats, persona])
 
   const currentProject = recentProjects[0] ?? null
   const currentStats = currentProject ? (stats[currentProject.id] ?? null) : null
@@ -298,8 +298,8 @@ export default function DashboardPage() {
               icon={FolderOpen}
               title={`No ${noun}s yet`}
               description={
-                noun === 'client'
-                  ? 'Add your first client to discover their competitors and generate content for their brand.'
+                persona === 'agency'
+                  ? 'Create your first project: a client brand or creator. Navix discovers their competitors and writes in their voice.'
                   : 'Start by creating a project to discover competitors and generate content for your brand.'
               }
               action={
@@ -308,7 +308,7 @@ export default function DashboardPage() {
                   className="inline-flex items-center gap-2 rounded-[12px] bg-secondary-300 px-5 py-3 text-body-2 font-medium text-primary-900 border border-primary-900 shadow-signature transition-all duration-200 hover:bg-secondary-400 hover:shadow-[0px_3px_0px_0px_#191a23] active:shadow-none active:translate-y-[2px]"
                 >
                   <Plus className="size-4" />
-                  {noun === 'client' ? 'Add client' : 'Create project'}
+                  Create project
                   <ArrowRight className="size-4" />
                 </Link>
               }

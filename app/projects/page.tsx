@@ -81,7 +81,7 @@ function NewProjectModal({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  const noun = isAgency ? 'client' : 'project'
+  const noun = 'project'
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -130,7 +130,7 @@ function NewProjectModal({
       >
         <div className="flex items-center justify-between border-b border-alpha-10 px-5 py-4">
           <h2 className="text-subheadline font-semibold text-primary-900">
-            {isAgency ? 'New client' : 'New project'}
+            New project
           </h2>
           <button
             type="button"
@@ -144,7 +144,7 @@ function NewProjectModal({
           {isAgency && (
             <div>
               <label className="mb-1.5 block text-caption-1 font-medium text-primary-900">
-                This client is a
+                This project is a
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {CLIENT_TYPES.map((opt) => {
@@ -323,7 +323,7 @@ function ProjectsContent() {
   }, [redirectTo, router])
 
   const isAgency = persona === 'agency'
-  const noun = isAgency ? 'client' : 'project'
+  const noun = 'project'
 
   function openNew() {
     setModal({ open: true })
@@ -369,11 +369,11 @@ function ProjectsContent() {
         >
           <div>
             <h1 className="text-h5 font-bold text-primary-900 sm:text-h4">
-              {isAgency ? 'Your clients' : 'Your projects'}
+              Your projects
             </h1>
             <p className="mt-1.5 text-body-2 text-alpha-60">
               {isAgency
-                ? 'The brands and creators you run content for, one workspace each.'
+                ? 'One project per client, brand or creator, with its own competitors, analysis, Studio and calendar.'
                 : 'Manage your competitive intelligence projects'}
             </p>
           </div>
@@ -381,7 +381,7 @@ function ProjectsContent() {
             {isAgency && (
               <button type="button" onClick={openSelfAsClient} className={secondaryClasses}>
                 <Building2 className="size-4" />
-                Add my agency as a client
+                Add my agency as a project
               </button>
             )}
             <button type="button" onClick={openNew} className={ctaClasses}>
@@ -421,10 +421,10 @@ function ProjectsContent() {
           >
             <EmptyState
               icon={FolderOpen}
-              title={isAgency ? 'Add your first client' : 'Create your first project'}
+              title="Create your first project"
               description={
                 isAgency
-                  ? 'Tell Navix who the client is and where they post. It reads their accounts, finds their competitors, and every AI feature speaks in their voice.'
+                  ? 'A project is one client: a brand or a creator. Tell Navix who they are and where they post; it reads their accounts, finds their competitors, and every AI feature speaks in their voice.'
                   : 'Start by setting up a project to discover competitors and generate content for your brand.'
               }
               action={

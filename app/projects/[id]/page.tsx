@@ -310,7 +310,7 @@ function OverviewContent() {
           ) : (
             <>
               <h1 className="text-h5 sm:text-h4 font-bold text-primary-900">{project.name}</h1>
-              <p className="mt-1.5 text-body-2 text-alpha-60">Client overview</p>
+              <p className="mt-1.5 text-body-2 text-alpha-60">Project overview</p>
             </>
           )}
         </motion.div>
