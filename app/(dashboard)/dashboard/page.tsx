@@ -160,7 +160,8 @@ export default function DashboardPage() {
     )
   }
 
-  const firstName = profile?.full_name?.split(' ')[0] || 'there'
+  // An agency has no first name: greet it by its name
+  const firstName = profile?.full_name?.split(' ')[0] || profile?.entity_name || 'there'
   const hasProjects = projects.length > 0
 
   return (
