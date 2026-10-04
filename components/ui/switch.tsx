@@ -62,7 +62,8 @@ function SwitchWithLabel({
   className,
   ...props
 }: SwitchWithLabelProps) {
-  const innerId = id ?? React.useId()
+  const autoId = React.useId()
+  const innerId = id ?? autoId
   const labelEl = (
     <label
       htmlFor={innerId}

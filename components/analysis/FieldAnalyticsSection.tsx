@@ -180,7 +180,7 @@ export function FieldAnalyticsSection({ data }: { data: FieldAnalytics }) {
   const topPosts = withContent
     .filter((c) => c.tracked)
     .flatMap((c) => c.top_posts.map((post) => ({ post, handle: c.handle })))
-    .sort((a, b) => b.post.likes_count + b.post.comments_count - (a.post.likes_count + a.post.comments_count))
+    .sort((a, b) => (b.post.likes_count ?? 0) + b.post.comments_count - ((a.post.likes_count ?? 0) + a.post.comments_count))
     .slice(0, 8)
   const verdict = verdictText(data)
 

@@ -84,7 +84,8 @@ const PORTFOLIO_NAV: NavGroup[] = [
   {
     items: [
       { label: 'Home', href: '/dashboard', icon: LayoutDashboard, exact: true },
-      { label: 'Projects', href: '/projects', icon: FolderOpen },
+      // Exact: inside a project the ProjectBlock above is the active context
+      { label: 'Projects', href: '/projects', icon: FolderOpen, exact: true },
     ],
   },
 ]
@@ -229,7 +230,7 @@ function SidebarContent({
       : [{ items: [{ label: 'Home', href: '/dashboard', icon: LayoutDashboard, exact: true }] }]
 
   const accountItems: NavItem[] = [
-    ...(!singleBrand && current ? [{ label: 'Projects', href: '/projects', icon: FolderOpen }] : []),
+    ...(!singleBrand && current ? [{ label: 'Projects', href: '/projects', icon: FolderOpen, exact: true }] : []),
     { label: 'Settings', href: '/settings', icon: Settings },
   ]
 

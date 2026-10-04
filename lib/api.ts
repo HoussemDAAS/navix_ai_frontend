@@ -647,9 +647,16 @@ export function createCalendarItem(
   projectId: string,
   data: CreateCalendarItemPayload,
 ) {
+  // The calendar DTOs are camelCase and reject unknown keys; the UI works in snake_case
   return request<{ data: CalendarItem }>(`/projects/${projectId}/calendar`, {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      draftId: data.draft_id,
+      title: data.title,
+      scheduledAt: data.scheduled_at,
+      platform: data.platform,
+      notes: data.notes,
+    }),
   })
 }
 
@@ -658,11 +665,14 @@ export function updateCalendarItem(
   itemId: string,
   patch: Partial<Pick<CalendarItem, 'title' | 'scheduled_at' | 'platform' | 'status' | 'notes'>>,
 ) {
+  const { scheduled_at, ...rest } = patch
+  const body: Record<string, unknown> = { ...rest }
+  if (scheduled_at !== undefined) body.scheduledAt = scheduled_at
   return request<{ data: CalendarItem }>(
     `/projects/${projectId}/calendar/${itemId}`,
     {
       method: 'PATCH',
-      body: JSON.stringify(patch),
+      body: JSON.stringify(body),
     },
   )
 }
@@ -752,7 +762,7 @@ export interface FieldTopPost {
   thumbnail_url: string | null
   caption: string | null
   content_type: string | null
-  likes_count: number
+  likes_count: number | null
   comments_count: number
   views_count: number
   published_at: string | null
@@ -811,7 +821,7 @@ export interface DigestPost {
   thumbnail_url: string | null
   caption: string | null
   content_type: string | null
-  likes_count: number
+  likes_count: number | null
   comments_count: number
   views_count: number
   published_at: string | null

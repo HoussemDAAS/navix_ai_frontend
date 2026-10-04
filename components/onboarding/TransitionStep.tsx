@@ -51,7 +51,7 @@ export function TransitionStep({
   const [tipIdx, setTipIdx] = useState(0)
   const [progress, setProgress] = useState(8)
   const [done, setDone] = useState(false)
-  const startedAt = useRef<number>(Date.now())
+  const startedAt = useRef<number | null>(null)
   const completedRef = useRef(false)
 
   // Rotate tips
@@ -62,8 +62,10 @@ export function TransitionStep({
 
   // Drive progress + completion
   useEffect(() => {
+    // The clock starts on mount and survives re-renders of the effect
+    if (startedAt.current === null) startedAt.current = Date.now()
     const tick = setInterval(() => {
-      const elapsed = Date.now() - startedAt.current
+      const elapsed = Date.now() - (startedAt.current ?? Date.now())
       const ratio = Math.min(elapsed / durationMs, 1)
       const pct = 8 + ratio * 92
       setProgress(pct)

@@ -58,7 +58,8 @@ function CheckboxWithLabel({
   className,
   ...props
 }: CheckboxWithLabelProps) {
-  const innerId = id ?? React.useId()
+  const autoId = React.useId()
+  const innerId = id ?? autoId
   return (
     <div className={cn("flex items-center", size === "sm" ? "gap-2" : "gap-3", className)}>
       <Checkbox id={innerId} size={size} {...props} />

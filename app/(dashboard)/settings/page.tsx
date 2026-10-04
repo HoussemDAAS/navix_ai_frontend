@@ -295,7 +295,7 @@ export default function SettingsPage() {
           <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
             <ProfileIdentity
               avatarUrl={profile.avatar_url}
-              name={form.full_name}
+              name={form.full_name || profile.entity_name || ''}
               followersCount={profile.followers_count}
               followingCount={profile.following_count}
               postsCount={profile.posts_count}

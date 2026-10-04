@@ -74,11 +74,17 @@ export function CountryPicker({
   // Auto-focus search when opening
   useEffect(() => {
     if (open) {
-      setQuery('')
       const t = setTimeout(() => inputRef.current?.focus(), 60)
       return () => clearTimeout(t)
     }
   }, [open])
+
+  function toggle() {
+    if (disabled) return
+    // A fresh search every time the list opens
+    if (!open) setQuery('')
+    setOpen(!open)
+  }
 
   function handleSelect(code: string) {
     onChange(code)
@@ -89,7 +95,7 @@ export function CountryPicker({
     <div ref={wrapperRef} className={cn('relative w-full', className)}>
       <button
         type="button"
-        onClick={() => !disabled && setOpen((v) => !v)}
+        onClick={toggle}
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
