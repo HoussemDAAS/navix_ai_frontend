@@ -16,7 +16,7 @@ const steps: Step[] = [
   {
     number: "01",
     title: "Map Your Niche",
-    description: "Define your brand kit and let AI instantly map 10–30 relevant competitor accounts fighting for your exact audience.",
+    description: "Define your brand kit and let AI instantly map 10 to 30 relevant competitor accounts fighting for your exact audience.",
     icon: Users,
     bg: "lime",
   },

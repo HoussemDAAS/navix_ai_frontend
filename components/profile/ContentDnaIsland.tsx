@@ -89,7 +89,7 @@ export function ContentDnaIsland({
             </div>
           ) : (
             <p className="text-caption-1 text-alpha-60">
-              You barely use hashtags — the field averages several per post.
+              You barely use hashtags, while the field averages several per post.
             </p>
           )}
         </div>

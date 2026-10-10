@@ -96,37 +96,77 @@ function verdictText(data: FieldAnalytics): string | null {
   return s.charAt(0).toUpperCase() + s.slice(1) + '.'
 }
 
-function AccountRow({ account, maxEngagement, isSelf }: { account: AccountAnalytics; maxEngagement: number; isSelf?: boolean }) {
+function AccountRow({
+  account,
+  rank,
+  maxEngagement,
+  fieldEngagement,
+  isSelf,
+}: {
+  account: AccountAnalytics
+  rank: number
+  maxEngagement: number
+  fieldEngagement: number | null
+  isSelf?: boolean
+}) {
   const [broken, setBroken] = useState(false)
   const src = avatarSrc(account.avatar_url)
   const er = account.engagement_rate
+  const ratio = er != null && fieldEngagement ? er / fieldEngagement : null
+  const meta = [
+    isSelf && account.handle !== 'you' ? `@${account.handle}` : null,
+    account.platform && account.platform.toUpperCase() !== 'INSTAGRAM' ? account.platform.toLowerCase() : null,
+    account.followers_count != null ? `${fmt(account.followers_count)} followers` : null,
+    account.dominant_format ? `mostly ${account.dominant_format}` : null,
+  ].filter(Boolean)
   return (
-    <tr className={cn('border-b border-alpha-10 last:border-0', isSelf && 'bg-secondary-50')}>
-      <td className="py-2.5 pr-3">
-        <div className="flex items-center gap-2.5 min-w-0">
+    <tr className={cn('border-b border-alpha-10 last:border-0 transition-colors', isSelf ? 'bg-secondary-50' : 'hover:bg-alpha-5')}>
+      <td className="py-3 pr-2 text-caption-1 text-alpha-40 tabular-nums">{rank}</td>
+      <td className="py-3 pr-2 w-[270px]">
+        <div className="flex items-center gap-3 min-w-0 max-w-[250px]">
           {src && !broken ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={src} alt={account.handle} onError={() => setBroken(true)} className="w-7 h-7 rounded-full object-cover shrink-0" />
+            <img
+              src={src}
+              alt={account.handle}
+              onError={() => setBroken(true)}
+              className={cn('w-9 h-9 rounded-full object-cover shrink-0', isSelf && 'ring-2 ring-secondary-600 ring-offset-1')}
+            />
           ) : (
-            <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center text-caption-2 font-bold text-primary-900 shrink-0">
+            <div
+              className={cn(
+                'w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center text-caption-1 font-bold text-primary-900 shrink-0',
+                isSelf && 'ring-2 ring-secondary-600 ring-offset-1',
+              )}
+            >
               {account.handle.slice(0, 2).toUpperCase()}
             </div>
           )}
-          <span className="text-caption-1 font-medium text-primary-900 truncate">
-            {isSelf ? 'You' : `@${account.handle}`}
-          </span>
-          {account.tracked && !isSelf && (
-            <span className="rounded-full bg-secondary-300 border border-primary-900 px-1.5 py-px text-caption-2 font-semibold text-primary-900 shrink-0">
-              Tracked
-            </span>
-          )}
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-caption-1 font-semibold text-primary-900 truncate">
+                {isSelf ? 'You' : `@${account.handle}`}
+              </span>
+              {isSelf && (
+                <span className="rounded-full bg-secondary-300 border border-primary-900 px-1.5 py-px text-caption-2 font-semibold text-primary-900 shrink-0">
+                  Your account
+                </span>
+              )}
+              {account.tracked && !isSelf && (
+                <span className="rounded-full bg-secondary-300 border border-primary-900 px-1.5 py-px text-caption-2 font-semibold text-primary-900 shrink-0">
+                  Tracked
+                </span>
+              )}
+            </div>
+            {meta.length > 0 && <p className="text-caption-2 text-alpha-50 leading-snug">{meta.join(' · ')}</p>}
+          </div>
         </div>
       </td>
-      <td className="py-2.5 px-3 text-caption-1 text-primary-900 text-right">{account.posts}</td>
-      <td className="py-2.5 px-3 text-caption-1 text-primary-900 text-right">{fmt(account.avg_likes)}</td>
-      <td className="py-2.5 px-3 text-caption-1 text-primary-900 text-right">{fmt(account.avg_comments)}</td>
-      <td className="py-2.5 px-3 text-caption-1 text-primary-900 text-right">{fmt(account.avg_views)}</td>
-      <td className="py-2.5 px-3">
+      <td className="py-3 px-2 text-caption-1 text-primary-900 text-right tabular-nums">{account.posts}</td>
+      <td className="py-3 px-2 text-caption-1 text-primary-900 text-right tabular-nums">{fmt(account.avg_likes)}</td>
+      <td className="py-3 px-2 text-caption-1 text-primary-900 text-right tabular-nums">{fmt(account.avg_comments)}</td>
+      <td className="py-3 px-2 text-caption-1 text-primary-900 text-right tabular-nums">{fmt(account.avg_views)}</td>
+      <td className="py-3 px-2">
         <div className="flex items-center gap-2 justify-end">
           <div className="w-16 h-2 rounded-[4px] bg-alpha-5 overflow-hidden">
             <div
@@ -134,11 +174,24 @@ function AccountRow({ account, maxEngagement, isSelf }: { account: AccountAnalyt
               style={{ width: er != null && maxEngagement > 0 ? `${Math.max((er / maxEngagement) * 100, 3)}%` : '0%' }}
             />
           </div>
-          <span className="text-caption-1 text-primary-900 w-12 text-right">{pct(er)}</span>
+          <span className="text-caption-1 font-semibold text-primary-900 w-12 text-right tabular-nums">{pct(er)}</span>
         </div>
       </td>
-      <td className="py-2.5 px-3 text-caption-1 text-primary-900 text-right">{account.posts_per_week ?? '—'}</td>
-      <td className="py-2.5 pl-3 text-caption-1 text-alpha-60 capitalize">{account.dominant_format ?? '—'}</td>
+      <td className="py-3 px-2 text-right whitespace-nowrap">
+        {ratio != null ? (
+          <span
+            className={cn('text-caption-1 font-semibold tabular-nums', ratio >= 1 ? 'text-success-700' : 'text-destructive-700')}
+            title={`${ratio.toFixed(2)} times the field average engagement`}
+          >
+            {ratio.toFixed(1)}×
+          </span>
+        ) : (
+          <span className="text-caption-1 text-alpha-40">—</span>
+        )}
+      </td>
+      <td className="py-3 pl-2 text-caption-1 text-primary-900 text-right tabular-nums whitespace-nowrap">
+        {account.posts_per_week != null ? `${account.posts_per_week}/wk` : '—'}
+      </td>
     </tr>
   )
 }
@@ -199,8 +252,8 @@ export function FieldAnalyticsSection({ data }: { data: FieldAnalytics }) {
         <div>
           <h2 className="text-subheadline font-bold text-primary-900">The field, measured</h2>
           <p className="text-caption-2 text-alpha-50">
-            Computed from {data.generated_from.posts} scraped posts across {data.generated_from.competitors_with_content} accounts
-            {data.generated_from.self_posts > 0 ? ` — plus ${data.generated_from.self_posts} of yours` : ''}. Live data, no AI.
+            Based on {data.generated_from.posts} recent public posts from {data.generated_from.competitors_with_content} accounts
+            {data.generated_from.self_posts > 0 ? `, plus ${data.generated_from.self_posts} of yours` : ''}.
           </p>
         </div>
       </div>
@@ -294,24 +347,49 @@ export function FieldAnalyticsSection({ data }: { data: FieldAnalytics }) {
       {/* Benchmark table */}
       {rows.length > 0 && (
         <div className="rounded-[20px] border border-alpha-10 bg-white p-5 sm:p-6 shadow-card">
-          <h3 className="text-body-2 font-bold text-primary-900 mb-3">Account benchmark</h3>
+          <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+            <div>
+              <h3 className="text-body-2 font-bold text-primary-900">Account benchmark</h3>
+              <p className="text-caption-2 text-alpha-50 mt-0.5">
+                Averages over each account&apos;s recent posts. Engagement is likes and comments per view; the last columns compare each account with the field average
+                {data.field.avg_engagement_rate != null ? ` (${pct(data.field.avg_engagement_rate)})` : ''}.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 text-caption-2 text-alpha-60 shrink-0">
+              <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-[3px] bg-secondary-600" />You</span>
+              <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-[3px] bg-info-500" />Field accounts</span>
+            </div>
+          </div>
+          {!data.self && (
+            <p className="mb-3 rounded-[12px] bg-alpha-5 border border-alpha-10 px-4 py-2.5 text-caption-1 text-alpha-60">
+              Your own account is not in the table yet: refresh it from your profile and it will appear at the top.
+            </p>
+          )}
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left">
+            <table className="w-full min-w-[680px] text-left">
               <thead>
-                <tr className="border-b border-alpha-10 text-caption-2 text-alpha-50 uppercase tracking-wide">
-                  <th className="py-2 pr-3 font-medium">Account</th>
-                  <th className="py-2 px-3 font-medium text-right">Posts</th>
-                  <th className="py-2 px-3 font-medium text-right">Avg likes</th>
-                  <th className="py-2 px-3 font-medium text-right">Avg comments</th>
-                  <th className="py-2 px-3 font-medium text-right">Avg views</th>
-                  <th className="py-2 px-3 font-medium text-right">Engagement</th>
-                  <th className="py-2 px-3 font-medium text-right">Posts/wk</th>
-                  <th className="py-2 pl-3 font-medium">Top format</th>
+                <tr className="border-b border-alpha-10 text-caption-2 text-alpha-50 uppercase tracking-wide whitespace-nowrap">
+                  <th className="py-2 pr-2 font-medium">#</th>
+                  <th className="py-2 pr-2 font-medium w-[270px]">Account</th>
+                  <th className="py-2 px-2 font-medium text-right">Posts</th>
+                  <th className="py-2 px-2 font-medium text-right">Likes</th>
+                  <th className="py-2 px-2 font-medium text-right">Comments</th>
+                  <th className="py-2 px-2 font-medium text-right">Views</th>
+                  <th className="py-2 px-2 font-medium text-right">Engagement</th>
+                  <th className="py-2 px-2 font-medium text-right">vs field</th>
+                  <th className="py-2 pl-2 font-medium text-right">Cadence</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map(({ account, isSelf }) => (
-                  <AccountRow key={isSelf ? 'self' : (account.id ?? account.handle)} account={account} maxEngagement={maxEngagement} isSelf={isSelf} />
+                {rows.map(({ account, isSelf }, i) => (
+                  <AccountRow
+                    key={isSelf ? 'self' : (account.id ?? account.handle)}
+                    account={account}
+                    rank={i + 1}
+                    maxEngagement={maxEngagement}
+                    fieldEngagement={data.field.avg_engagement_rate}
+                    isSelf={isSelf}
+                  />
                 ))}
               </tbody>
             </table>

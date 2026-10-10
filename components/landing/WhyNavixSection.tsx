@@ -4,9 +4,9 @@ import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 
 const stats = [
-  { value: "10–30", label: "Competitors mapped per project" },
+  { value: "10 to 30", label: "Competitors mapped per project" },
   { value: "< 3 min", label: "Time to first competitive insight" },
-  { value: "2–4 weeks", label: "Editorial calendar generated" },
+  { value: "2 to 4 weeks", label: "Editorial calendar generated" },
 ]
 
 export function WhyNavixSection({ className }: { className?: string }) {

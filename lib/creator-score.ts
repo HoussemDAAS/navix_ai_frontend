@@ -70,8 +70,8 @@ export function computeCreatorScore(
       hint:
         score < 60
           ? ratio != null
-            ? `Your engagement runs at ${Math.round(ratio * 100)}% of your field's — study your top posts' hooks and make more like them.`
-            : 'Engagement is below a healthy bar — stronger hooks in the first line lift it fastest.'
+            ? `Your engagement runs at ${Math.round(ratio * 100)}% of your field's. Study your top posts' hooks and make more like them.`
+            : 'Engagement is below a healthy bar. Stronger hooks in the first line lift it fastest.'
           : null,
     })
   }
@@ -97,7 +97,7 @@ export function computeCreatorScore(
         score < 60
           ? fieldPpw != null
             ? `The field posts ${fieldPpw}/week; you post ${ppw ?? 0}. One fixed post a week moves this pillar the most.`
-            : 'Posting is too rare to compound — one fixed post a week changes everything.'
+            : 'Posting is too rare to compound. One fixed post a week changes everything.'
           : null,
     })
   }
@@ -125,7 +125,7 @@ export function computeCreatorScore(
       display,
       hint:
         score < 60
-          ? 'Your gaps between posts swing wildly — a fixed weekly slot beats bursts followed by silence.'
+          ? 'Your gaps between posts swing wildly. A fixed weekly slot beats bursts followed by silence.'
           : null,
     })
   }
@@ -153,7 +153,7 @@ export function computeCreatorScore(
       display: mix.length > 1 ? `${mix.length} formats` : dominant ? `${dominant} only` : '—',
       hint:
         score < 60 && dominant
-          ? `Almost everything you post is ${dominant} — your field splits across image, carousel and video; try one carousel a week.`
+          ? `Almost everything you post is ${dominant}, while your field splits across image, carousel and video. Try one carousel a week.`
           : null,
     })
   }
@@ -183,7 +183,7 @@ export function computeCreatorScore(
       display,
       hint:
         score < 60
-          ? 'Only a slice of your audience sees each post — reels and a strong first two seconds widen reach.'
+          ? 'Only a slice of your audience sees each post. Reels and a strong first two seconds widen reach.'
           : null,
     })
   }

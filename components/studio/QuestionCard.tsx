@@ -86,7 +86,7 @@ export function QuestionCard({ question, answered, disabled = false, onAnswer }:
                 .filter((o) => o.hint)
                 .map((o) => (
                   <li key={o.label} className="text-caption-2 text-alpha-60">
-                    <span className="font-semibold text-primary-900">{o.label}</span> — {o.hint}
+                    <span className="font-semibold text-primary-900">{o.label}</span>: {o.hint}
                   </li>
                 ))}
             </ul>

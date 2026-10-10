@@ -13,7 +13,7 @@ const copy = {
   login: {
     heading: 'Welcome back.',
     accent: 'Your insights await.',
-    sub: 'Pick up where you left off — your competitor intelligence is ready.',
+    sub: 'Pick up where you left off. Your competitor intelligence is ready.',
   },
   signup: {
     heading: 'Know your competitors.',

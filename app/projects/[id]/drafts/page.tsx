@@ -304,7 +304,7 @@ export default function DraftsPage() {
               </h2>
               <p className="text-body-2 text-alpha-60 max-w-[440px] mx-auto mb-7">
                 Select directions on the Directions page and we&apos;ll write full
-                drafts for each one — captions, hooks, and scripts.
+                drafts for each one: captions, hooks, and scripts.
               </p>
               <LimeButton
                 onClick={() => router.push(`/projects/${projectId}/directions`)}

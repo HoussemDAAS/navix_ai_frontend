@@ -343,7 +343,7 @@ function CompetitorsContent() {
     tracked.length > 0
       ? `${tracked.length} tracked · ${found.length} more found by Navix`
       : found.length > 0
-        ? `${found.length} accounts found — track the ones worth benchmarking`
+        ? `${found.length} accounts found. Track the ones worth benchmarking`
         : 'The accounts competing for your audience, found and ranked by Navix.'
 
   const progressPanel = discovery && (discoveryActive || discovery.status === 'failed') && (
@@ -373,7 +373,7 @@ function CompetitorsContent() {
                   discovery.counts.candidates > 0 ? `${discovery.counts.candidates} accounts found` : null,
                   discovery.counts.enriched > 0 ? `${discovery.counts.enriched} analyzed` : null,
                   discovery.counts.kept > 0 ? `${discovery.counts.kept} kept` : null,
-                ].filter(Boolean).join(' · ') || 'We take our time here — good matches beat fast ones.'}
+                ].filter(Boolean).join(' · ') || 'We take our time here. Good matches beat fast ones.'}
           </p>
           {discovery.status !== 'failed' && (
             <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-alpha-10">
@@ -545,7 +545,7 @@ function CompetitorsContent() {
                   count={found.length}
                   hint={
                     tracked.length > 0
-                      ? 'Every account you track teaches Navix what to look for — similar accounts land here.'
+                      ? 'Every account you track teaches Navix what to look for. Similar accounts land here.'
                       : 'Each account was judged against your profile. Track the ones you want to benchmark.'
                   }
                 >
@@ -578,7 +578,7 @@ function CompetitorsContent() {
 
               {tracked.length === 0 && found.length === 0 && (
                 <p className="rounded-[16px] border border-alpha-10 bg-alpha-5/50 px-5 py-4 text-body-2 text-alpha-60">
-                  Everything found so far was dismissed — search again, add an account by link, or restore one below.
+                  Everything found so far was dismissed. Search again, add an account by link, or restore one below.
                 </p>
               )}
 
@@ -653,7 +653,7 @@ function CompetitorsContent() {
                   Track {ANALYSIS_READY_AT - tracked.length} more to unlock analysis
                 </p>
                 <p className="mt-1 text-caption-1 text-alpha-60">
-                  Aim for your best five — quality beats quantity here.
+                  Aim for your best five. Quality beats quantity here.
                 </p>
               </div>
             )

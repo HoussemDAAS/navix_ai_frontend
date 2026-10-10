@@ -218,7 +218,7 @@ export function WeeklyDigest({ projectId, reloadKey = 0, className }: WeeklyDige
           <div>
             <p className="text-body-2 font-semibold text-primary-900">This week</p>
             <p className="text-caption-2 text-alpha-60">
-              {shortDate(period.from)} – {shortDate(period.to)} · from your data
+              {shortDate(period.from)} to {shortDate(period.to)} · from your data
               {ai.generated_at && ` · read ${timeAgo(ai.generated_at)}`}
             </p>
           </div>
@@ -272,7 +272,7 @@ export function WeeklyDigest({ projectId, reloadKey = 0, className }: WeeklyDige
             )}
           >
             {you.days_since_last_post == null
-              ? 'No posts scraped yet'
+              ? 'No posts read yet'
               : you.days_since_last_post === 0
                 ? 'Posted today'
                 : `Last post ${you.days_since_last_post} d ago`}
@@ -335,7 +335,7 @@ export function WeeklyDigest({ projectId, reloadKey = 0, className }: WeeklyDige
               </>
             ) : (
               <p className="text-caption-1 leading-relaxed text-alpha-60">
-                Navix is reading this week&apos;s data. Brainstorm in the Studio meanwhile — it already knows your
+                Navix is reading this week&apos;s data. Brainstorm in the Studio meanwhile. It already knows your
                 voice and your field.
               </p>
             )}

@@ -163,7 +163,7 @@ export function SocialLinksStep({
                   </div>
                   {showInvalid && (
                     <p className="text-caption-2 text-destructive-500">
-                      Paste the full profile link — Instagram or TikTok.
+                      Paste the full profile link, Instagram or TikTok.
                     </p>
                   )}
                 </div>
@@ -204,7 +204,7 @@ export function SocialLinksStep({
               className="inline-flex items-center gap-1.5 text-caption-1 font-semibold text-alpha-60 hover:text-primary-900 transition-colors text-left"
             >
               <Sparkles className="size-3.5" />
-              I&apos;m new — no accounts yet
+              I&apos;m new, no accounts yet
             </button>
             <LimeButton onClick={handleSubmit} loading={saving}>
               Finish setup
@@ -215,7 +215,7 @@ export function SocialLinksStep({
       ) : (
         <>
           <div className="rounded-[14px] border border-secondary-300 bg-secondary-50 px-4 py-3">
-            <p className="text-caption-1 font-semibold text-primary-900">Starting from zero — that&apos;s fine.</p>
+            <p className="text-caption-1 font-semibold text-primary-900">Starting from zero is fine.</p>
             <p className="text-caption-2 text-primary-900/70 mt-0.5">
               Since we can&apos;t read your posts yet, the more precise you are here, the more accurate your competitors will be.
             </p>
@@ -229,7 +229,7 @@ export function SocialLinksStep({
               rows={3}
               value={value.niche_description}
               onChange={(e) => onChange({ niche_description: e.target.value })}
-              placeholder={descriptionPlaceholder ?? 'e.g. Handmade natural skincare for women 25–40 in Tunisia: routines, ingredient breakdowns, before/after results.'}
+              placeholder={descriptionPlaceholder ?? 'e.g. Handmade natural skincare for women 25 to 40 in Tunisia: routines, ingredient breakdowns, before/after results.'}
               className={cn(
                 'w-full rounded-[12px] border bg-white px-4 py-3 text-body-2 text-primary-900 placeholder:text-alpha-40 outline-none transition-all resize-none shadow-card',
                 touched && !descriptionOk ? 'border-destructive-300' : 'border-alpha-10 hover:border-alpha-20 focus:border-transparent focus:shadow-[0px_0px_0px_3px] focus:shadow-ring',

@@ -142,7 +142,7 @@ export function MemoryPanel({ projectId }: { projectId: string }) {
                 className="w-full rounded-[10px] border border-transparent px-2 py-1 text-left text-caption-1 leading-relaxed text-primary-900 hover:border-alpha-10 hover:bg-alpha-5"
                 title="Click to edit"
               >
-                {memory?.summary || 'No summary yet — click to write one.'}
+                {memory?.summary || 'No summary yet. Click to write one.'}
               </button>
             ) : (
               <div className="space-y-2">

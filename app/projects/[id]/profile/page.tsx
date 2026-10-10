@@ -173,7 +173,7 @@ export default function SelfProfilePage() {
               hasInsight={insight !== null}
               error={data.insight_error}
               generatedAt={data.insight_generated_at}
-              noDataMessage="Scrape your account first — Navix reads your own posts before it can judge your voice."
+              noDataMessage="Refresh your account first. Navix reads your own posts before it can judge your voice."
               onRefresh={handleRefreshInsight}
               refreshing={refreshing}
               refreshError={refreshError}
@@ -204,7 +204,7 @@ export default function SelfProfilePage() {
             ) : (
               <EmptyPostsIsland
                 title="We haven’t read your posts yet"
-                message="Connect and scrape your account so Navix can measure your own numbers, spot your voice, and compare you against the field."
+                message="Connect your account so Navix can measure your own numbers, spot your voice, and compare you against the field."
                 action={
                   <Link
                     href="/settings"

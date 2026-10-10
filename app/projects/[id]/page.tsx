@@ -392,7 +392,7 @@ function OverviewContent() {
                   Your top competitors
                 </h2>
                 <p className="text-caption-1 text-alpha-60 mt-0.5">
-                  Real accounts competing for your audience — found and ranked by Navix.
+                  Real accounts competing for your audience, found and ranked by Navix.
                 </p>
               </div>
               <div className="flex items-center gap-4 shrink-0">
@@ -491,10 +491,10 @@ function OverviewContent() {
               {insightsState === 'ready' && insights && !insights.available && (
                 <p className="text-body-2 text-alpha-60">
                   {insights.reason === 'no_ai_credits'
-                    ? 'AI insights are paused — the OpenAI account has no credits. Add credits, then hit Refresh.'
+                    ? 'AI insights are paused: the OpenAI account has no credits. Add credits, then hit Refresh.'
                     : insights.reason === 'ai_error'
-                      ? 'The AI read failed — hit Refresh to try again.'
-                      : 'Track a few competitors first — Navix needs a field to compare you against.'}
+                      ? 'The AI read failed. Hit Refresh to try again.'
+                      : 'Track a few competitors first. Navix needs a field to compare you against.'}
                 </p>
               )}
 
@@ -531,7 +531,7 @@ function OverviewContent() {
                             </span>
                             <p className="text-body-2 text-primary-900 leading-relaxed">
                               <span className="font-semibold">@{ci.handle}</span>{' '}
-                              <span className="text-alpha-60">—</span> {ci.insight}
+                              <span className="text-alpha-60">·</span> {ci.insight}
                             </p>
                           </div>
                         ))}
@@ -558,7 +558,7 @@ function OverviewContent() {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
                     {insights.thin_data ? (
                       <p className="text-caption-2 text-alpha-60">
-                        Based on limited scraped data — track more competitors to sharpen this read.
+                        Based on limited data. Track more competitors to sharpen this read.
                       </p>
                     ) : <span />}
                     <Link
@@ -682,7 +682,7 @@ function OverviewContent() {
               <p className="text-caption-1 text-alpha-60">
                 {hasDrafts
                   ? 'Keep going in the Studio, or approve what is waiting in the Library.'
-                  : 'Brainstorm with Navix in the Studio — it already knows your voice and your field.'}
+                  : 'Brainstorm with Navix in the Studio. It already knows your voice and your field.'}
               </p>
             </div>
           </div>

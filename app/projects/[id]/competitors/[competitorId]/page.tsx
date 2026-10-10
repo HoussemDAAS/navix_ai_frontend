@@ -21,7 +21,7 @@ import { ProfileSkeleton } from '@/components/profile/ProfileSkeleton'
 import { ProfileErrorState } from '@/components/profile/ProfileErrorState'
 import { getCompetitorProfile, updateCompetitor, type CompetitorProfile } from '@/lib/api'
 
-const SCRAPE_NOTE = 'We’re scraping their content now — numbers appear in a few minutes.'
+const SCRAPE_NOTE = 'We are reading their recent posts now. Numbers appear in a few minutes.'
 
 type PageState = 'loading' | 'ready' | 'error'
 
@@ -156,7 +156,7 @@ export default function CompetitorProfilePage() {
               hasInsight={insight !== null}
               error={data.insight_error}
               generatedAt={data.insight_generated_at}
-              noDataMessage="Track & scrape this account to unlock the AI read."
+              noDataMessage="Track this account to unlock the AI read."
               onRefresh={handleRefreshInsight}
               refreshing={refreshing}
               refreshError={refreshError}
@@ -182,11 +182,11 @@ export default function CompetitorProfilePage() {
               </>
             ) : (
               <EmptyPostsIsland
-                title="No content scraped yet"
+                title="No content read yet"
                 message={
                   tracked
-                    ? 'This account is tracked — we’re pulling their posts now. Their content, numbers and patterns appear here within a few minutes.'
-                    : 'Track this account and Navix will scrape their recent posts, then show every caption, format and engagement number right here.'
+                    ? 'This account is tracked and we are reading its recent posts. Content, numbers and patterns appear here within a few minutes.'
+                    : 'Track this account and Navix will read its recent posts, then show every caption, format and engagement number right here.'
                 }
                 action={tracked ? undefined : trackCta}
               />

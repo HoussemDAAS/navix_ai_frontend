@@ -394,7 +394,7 @@ export default function EcommerceOnboardingPage() {
               onSubmit={handleSocialsSubmit}
               saving={saving}
               error={error}
-              descriptionPlaceholder="e.g. Handmade natural skincare for women 25–40 in Tunisia: routines, ingredient breakdowns, before/after results, launches."
+              descriptionPlaceholder="e.g. Handmade natural skincare for women 25 to 40 in Tunisia: routines, ingredient breakdowns, before/after results, launches."
             />
           </StepShell>
         </motion.div>

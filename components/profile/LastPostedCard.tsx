@@ -18,9 +18,9 @@ function headline(days: number): string {
 export function LastPostedCard({ days }: LastPostedCardProps) {
   const nudge =
     days > 14
-      ? { text: 'Your field posted all week — time to show up.', tone: 'warning' as const }
+      ? { text: 'Your field posted all week. Time to show up.', tone: 'warning' as const }
       : days <= 7
-        ? { text: 'You’re active — keep the rhythm.', tone: 'success' as const }
+        ? { text: 'You’re active. Keep the rhythm.', tone: 'success' as const }
         : null
 
   return (

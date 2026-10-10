@@ -172,7 +172,7 @@ function LibraryContent() {
       setCalendar((prev) => [...prev, ...res.data.items.filter((i) => !prev.some((p) => p.id === i.id))])
       setNotice(
         res.data.items.length === 0
-          ? 'Nothing to plan — approve a draft first.'
+          ? 'Nothing to plan yet. Approve a draft first.'
           : `${res.data.items.length} draft${res.data.items.length > 1 ? 's' : ''} placed on your calendar: ${res.data.items
               .map((i) => slotLabel(i.scheduled_at))
               .join(' · ')}. ${res.data.reasons[0] ?? ''}`,
@@ -283,7 +283,7 @@ function LibraryContent() {
           <Empty
             icon={Lightbulb}
             title={ideas.length === 0 ? 'No ideas yet' : 'Nothing matches this filter'}
-            description="Ideas are content angles Navix proposes in the Studio — each one can become a draft."
+            description="Ideas are content angles Navix proposes in the Studio. Each one can become a draft."
             projectId={projectId}
           />
         ) : (
@@ -343,7 +343,7 @@ function LibraryContent() {
           <Empty
             icon={PenLine}
             title={drafts.length === 0 ? 'No drafts yet' : 'Nothing matches this filter'}
-            description="Drafts are finished captions and scripts. Approve the ones you would post — that is what Navix learns from."
+            description="Drafts are finished captions and scripts. Approve the ones you would post: that is what Navix learns from."
             projectId={projectId}
           />
         ) : (

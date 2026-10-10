@@ -276,7 +276,7 @@ export default function AnalysisPage() {
                   {analysis.freshness.new_posts_since > 0
                     ? ` · ${analysis.freshness.new_posts_since} new competitor post${analysis.freshness.new_posts_since > 1 ? 's' : ''} collected since`
                     : ' · no new competitor posts since'}
-                  {analysis.freshness.stale && ' — worth updating'}
+                  {analysis.freshness.stale && ', worth updating'}
                 </p>
                 <button
                   type="button"

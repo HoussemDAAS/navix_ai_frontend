@@ -49,7 +49,7 @@ export function AiReadIsland({
           <div className="min-w-0">
             <p className="text-body-2 font-semibold text-primary-900">Navix AI read</p>
             <p className="text-caption-2 text-alpha-60 truncate">
-              {generatedAt ? `Generated ${fmtDate(generatedAt)}` : 'Grounded in this account’s scraped posts'}
+              {generatedAt ? `Generated ${fmtDate(generatedAt)}` : 'Grounded in this account’s recent posts'}
             </p>
           </div>
         </div>

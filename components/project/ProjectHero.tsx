@@ -150,7 +150,7 @@ export function ProjectHero({ project, persona, freshness, className }: ProjectH
       ) : (
         <p className="mt-3 flex items-center gap-1.5 text-caption-2 text-alpha-60">
           <Clock className="size-3 shrink-0" />
-          {updated ? `Data updated ${updated}` : 'No scraped data yet'}
+          {updated ? `Data updated ${updated}` : 'No data yet'}
         </p>
       )}
     </div>

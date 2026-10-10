@@ -59,8 +59,8 @@ export function AddCompetitorModal({ projectId, open, onClose, onAdded }: AddCom
               <div>
                 <h3 className="text-subheadline font-bold text-primary-900">Add a competitor</h3>
                 <p className="text-caption-1 text-alpha-60 mt-0.5">
-                  Paste their Instagram or TikTok profile link — we read the account, scrape their
-                  content and find similar accounts.
+                  Paste their Instagram or TikTok profile link. We read the account and its recent
+                  posts, then find similar accounts.
                 </p>
               </div>
               <button
@@ -89,7 +89,7 @@ export function AddCompetitorModal({ projectId, open, onClose, onAdded }: AddCom
             <div className="mt-2 min-h-5">
               {share && (
                 <p className="text-caption-2 text-warning-600">
-                  That looks like a share link — open it and paste the profile URL instead.
+                  That looks like a share link. Open it and paste the profile URL instead.
                 </p>
               )}
               {parsed && !share && (
@@ -111,7 +111,7 @@ export function AddCompetitorModal({ projectId, open, onClose, onAdded }: AddCom
             </button>
             {saving && (
               <p className="mt-2 text-center text-caption-2 text-alpha-50">
-                Reading their real profile — takes ~20 seconds.
+                Reading their profile, about 20 seconds.
               </p>
             )}
           </motion.div>

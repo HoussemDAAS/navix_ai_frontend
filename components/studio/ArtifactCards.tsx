@@ -188,9 +188,9 @@ export function DraftCard({ draft, projectId, onRevise, compact = false, disable
           {draft.hook_alternatives.length > 0 && (
             <div>
               <p className="text-caption-2 font-semibold uppercase tracking-wide text-alpha-40">Other hooks</p>
-              <ul className="mt-1 space-y-1">
+              <ul className="mt-1 space-y-1 list-disc pl-4">
                 {draft.hook_alternatives.map((h, i) => (
-                  <li key={i} className="text-caption-1 text-primary-900">– {h}</li>
+                  <li key={i} className="text-caption-1 text-primary-900">{h}</li>
                 ))}
               </ul>
             </div>
@@ -198,9 +198,9 @@ export function DraftCard({ draft, projectId, onRevise, compact = false, disable
           {draft.cta_alternatives.length > 0 && (
             <div>
               <p className="text-caption-2 font-semibold uppercase tracking-wide text-alpha-40">Other CTAs</p>
-              <ul className="mt-1 space-y-1">
+              <ul className="mt-1 space-y-1 list-disc pl-4">
                 {draft.cta_alternatives.map((c, i) => (
-                  <li key={i} className="text-caption-1 text-primary-900">– {c}</li>
+                  <li key={i} className="text-caption-1 text-primary-900">{c}</li>
                 ))}
               </ul>
             </div>

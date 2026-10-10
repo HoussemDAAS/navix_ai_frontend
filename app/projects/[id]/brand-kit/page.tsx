@@ -145,7 +145,7 @@ export default function BrandKitPage() {
       const confidence =
         res.data.confidence != null ? ` · confidence ${Math.round(res.data.confidence * 100)}%` : ''
       setAutofillNote(
-        `Read from ${res.data.posts_used} of your posts${confidence}. It is already saved — adjust anything that feels off.`,
+        `Read from ${res.data.posts_used} of your posts${confidence}. It is already saved. Adjust anything that feels off.`,
       )
     } catch (err) {
       setAutofill('error')

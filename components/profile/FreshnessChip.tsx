@@ -64,7 +64,7 @@ export function FreshnessChip({
       }
       if (!cancelled.current) {
         setPhase('notice')
-        setMessage('Still refreshing in the background — check back in a minute.')
+        setMessage('Still refreshing in the background. Check back in a minute.')
       }
     },
     [poll, onRefreshed],
@@ -79,7 +79,7 @@ export function FreshnessChip({
       if (cancelled.current) return
       if (outcome.started) {
         setPhase('refreshing')
-        setMessage('Reading the account now — this takes about a minute.')
+        setMessage('Reading the account now. This takes about a minute.')
         void waitForFreshData(lastScrapedAt)
         return
       }
@@ -87,11 +87,11 @@ export function FreshnessChip({
       const nextAt = relativeTimeUntil(outcome.next_allowed_at)
       setMessage(
         outcome.reason === 'too_soon'
-          ? `Refreshed recently — you can refresh again ${nextAt ?? 'soon'}.`
+          ? `Refreshed recently. You can refresh again ${nextAt ?? 'soon'}.`
           : outcome.reason === 'already_running'
             ? 'A refresh is already running for this account.'
             : outcome.reason === 'no_handle'
-              ? 'No social handle to refresh — add one in settings.'
+              ? 'No social handle to refresh. Add one in settings.'
               : 'Could not start a refresh right now.',
       )
     } catch (err) {
@@ -108,7 +108,7 @@ export function FreshnessChip({
     <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1', className)}>
       <span className="inline-flex items-center gap-1.5 rounded-full border border-alpha-10 bg-white/70 px-3 py-1 text-caption-2 text-alpha-60">
         <Clock className="size-3 shrink-0" />
-        {updated ? `Data updated ${updated}` : 'No scraped data yet'}
+        {updated ? `Data updated ${updated}` : 'No data yet'}
         <span aria-hidden className="mx-1 h-3 w-px bg-alpha-10" />
         <button
           type="button"

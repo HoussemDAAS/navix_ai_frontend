@@ -32,33 +32,52 @@ export function DistributionBars({ items }: { items: Array<{ label: string; coun
   )
 }
 
-/** Column chart for posting days: hover tooltip, busiest day direct-labeled. */
+/** Column chart for posting days: every column carries its count above the bar, the busiest day stands out. */
 export function DayColumns({ days }: { days: Array<{ day: string; count: number }> }) {
   const [hovered, setHovered] = useState<string | null>(null)
   const max = Math.max(...days.map((d) => d.count), 1)
+  const total = days.reduce((sum, d) => sum + d.count, 0)
   const busiest = days.reduce((a, b) => (b.count > a.count ? b : a), days[0])
   return (
-    <div className="flex items-end gap-2 h-28 pt-4">
-      {days.map((d) => (
-        <div
-          key={d.day}
-          className="relative flex-1 flex flex-col items-center gap-1.5 h-full justify-end"
-          onMouseEnter={() => setHovered(d.day)}
-          onMouseLeave={() => setHovered(null)}
-        >
-          {(hovered === d.day || d.day === busiest.day) && (
-            <span className="absolute -top-1 text-caption-2 font-semibold text-primary-900">{d.count}</span>
-          )}
-          <div
-            className={cn(
-              'w-full max-w-8 rounded-t-[4px] transition-colors',
-              hovered === d.day ? 'bg-secondary-700' : 'bg-secondary-600',
-            )}
-            style={{ height: `${Math.max((d.count / max) * 100, 4)}%` }}
-          />
-          <span className="text-caption-2 text-alpha-60">{d.day}</span>
-        </div>
-      ))}
+    <div className="pt-2">
+      <div className="flex items-end gap-2">
+        {days.map((d) => {
+          const isBusiest = d.day === busiest.day
+          const active = hovered === d.day
+          return (
+            <div
+              key={d.day}
+              className="flex-1 flex flex-col items-center gap-1 min-w-0"
+              onMouseEnter={() => setHovered(d.day)}
+              onMouseLeave={() => setHovered(null)}
+            >
+              <span
+                className={cn(
+                  'text-caption-2 tabular-nums leading-none',
+                  isBusiest || active ? 'font-semibold text-primary-900' : 'text-alpha-50',
+                )}
+              >
+                {d.count}
+              </span>
+              <div className="w-full h-20 flex items-end justify-center">
+                <div
+                  className={cn(
+                    'w-full max-w-8 rounded-t-[4px] transition-colors',
+                    active ? 'bg-secondary-700' : isBusiest ? 'bg-secondary-600' : 'bg-secondary-500',
+                  )}
+                  style={{ height: `${Math.max((d.count / max) * 100, 4)}%` }}
+                />
+              </div>
+              <span className={cn('text-caption-2', isBusiest ? 'font-semibold text-primary-900' : 'text-alpha-60')}>{d.day}</span>
+            </div>
+          )
+        })}
+      </div>
+      {total > 0 && (
+        <p className="mt-3 text-caption-2 text-alpha-60">
+          Busiest day: <span className="font-semibold text-primary-900">{busiest.day}</span> with {busiest.count} posts, {Math.round((busiest.count / total) * 100)}% of the week.
+        </p>
+      )}
     </div>
   )
 }
