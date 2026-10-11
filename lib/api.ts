@@ -10,6 +10,17 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   return {}
 }
 
+/** Multipart POST (file uploads): the browser sets the content type and boundary itself. */
+async function requestForm<T>(path: string, form: FormData): Promise<T> {
+  const authHeaders = await getAuthHeaders()
+  const res = await fetch(`${API_URL}${path}`, { method: 'POST', headers: authHeaders, body: form })
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ message: res.statusText }))
+    throw new Error(error.message || `API error: ${res.status}`)
+  }
+  return res.json()
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const authHeaders = await getAuthHeaders()
 
@@ -984,6 +995,8 @@ export interface Profile {
   full_name: string | null
   avatar_url: string | null
   biography: string | null
+  /** Email allowlisted in the API: opens the Knowledge page */
+  is_admin?: boolean
 
   persona: ProfilePersona | null
 
@@ -1031,4 +1044,114 @@ export function updateProfile(data: Partial<Omit<Profile, 'id'>>) {
     method: 'PATCH',
     body: JSON.stringify(data),
   })
+}
+
+// ── Knowledge library (admin only): what every project's AI learns from ──
+
+export type KnowledgeType = 'framework' | 'hook' | 'cta' | 'script' | 'caption' | 'rule' | 'article'
+export type KnowledgeStatus = 'active' | 'pending' | 'rejected'
+
+export interface KnowledgeItem {
+  id: string
+  type: KnowledgeType
+  title: string | null
+  content: string
+  language: string
+  script: string
+  field: string | null
+  format: string
+  goal: string
+  funnel: string
+  group_label: string | null
+  note: string | null
+  source_kind: string
+  source_url: string | null
+  origin_project_id: string | null
+  status: KnowledgeStatus
+  usage_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface KnowledgeStats {
+  total: number
+  by_type: Record<string, number>
+  by_status: Record<string, number>
+  by_language: Record<string, number>
+}
+
+export interface KnowledgeImportOptions {
+  type: KnowledgeType
+  split?: 'line' | 'blank' | 'marker' | 'none'
+  auto_tag?: boolean
+  defaults?: Record<string, string>
+}
+
+export interface KnowledgeSearchHit {
+  item_id: string
+  type: KnowledgeType
+  title: string | null
+  content: string
+  language: string
+  script: string
+  field: string | null
+  format: string
+  goal: string
+  funnel: string
+  group_label: string | null
+  note: string | null
+  similarity: number
+}
+
+export function listKnowledge(params: { type?: string; language?: string; status?: string; q?: string; limit?: number; offset?: number } = {}) {
+  const qs = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== '' && v !== null) qs.set(k, String(v))
+  const suffix = qs.toString() ? `?${qs.toString()}` : ''
+  return request<{ data: { items: KnowledgeItem[]; total: number } }>(`/admin/knowledge${suffix}`)
+}
+
+export function getKnowledgeStats() {
+  return request<{ data: KnowledgeStats }>('/admin/knowledge/stats')
+}
+
+export function importKnowledgeText(payload: KnowledgeImportOptions & { text: string }) {
+  return request<{ message: string; data: KnowledgeItem[] }>('/admin/knowledge/import', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function importKnowledgeFile(file: File, options: KnowledgeImportOptions) {
+  const form = new FormData()
+  form.append('file', file)
+  form.append('type', options.type)
+  if (options.split) form.append('split', options.split)
+  form.append('auto_tag', options.auto_tag === false ? 'false' : 'true')
+  if (options.defaults) form.append('defaults', JSON.stringify(options.defaults))
+  return requestForm<{ message: string; data: KnowledgeItem[] }>('/admin/knowledge/import/file', form)
+}
+
+export function addKnowledgeArticle(payload: { url: string; field?: string; language?: string }) {
+  return request<{ message: string; data: KnowledgeItem[] }>('/admin/knowledge/article', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function searchKnowledge(payload: { query: string; type?: string; language?: string; script?: string; format?: string; goal?: string; field?: string; k?: number }) {
+  return request<{ data: KnowledgeSearchHit[] }>('/admin/knowledge/search', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function updateKnowledgeItem(id: string, patch: Partial<Pick<KnowledgeItem, 'type' | 'title' | 'content' | 'language' | 'script' | 'field' | 'format' | 'goal' | 'funnel' | 'group_label' | 'note' | 'status'>>) {
+  return request<{ data: KnowledgeItem }>(`/admin/knowledge/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  })
+}
+
+export function deleteKnowledgeItem(id: string) {
+  return request<{ data: { id: string } }>(`/admin/knowledge/${id}`, { method: 'DELETE' })
 }

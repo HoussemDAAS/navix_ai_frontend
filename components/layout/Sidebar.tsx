@@ -10,6 +10,7 @@ import {
   Calendar,
   FolderOpen,
   LayoutDashboard,
+  Library,
   LogOut,
   MessagesSquare,
   Palette,
@@ -232,6 +233,8 @@ function SidebarContent({
   const accountItems: NavItem[] = [
     ...(!singleBrand && current ? [{ label: 'Projects', href: '/projects', icon: FolderOpen, exact: true }] : []),
     { label: 'Settings', href: '/settings', icon: Settings },
+    // Internal: the library every project's AI learns from (email allowlist in the API)
+    ...(workspace.profile?.is_admin ? [{ label: 'Knowledge', href: '/admin/knowledge', icon: Library }] : []),
   ]
 
   const homeHref = singleBrand && current ? `/projects/${current.id}` : '/dashboard'
