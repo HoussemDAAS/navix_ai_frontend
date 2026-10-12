@@ -309,9 +309,9 @@ export default function KnowledgePage() {
               {mode === 'file' && (
                 <label className="flex min-h-[160px] cursor-pointer flex-col items-center justify-center gap-2 rounded-[14px] border border-dashed border-alpha-20 bg-alpha-5/50 p-6 text-center hover:border-primary-900">
                   <FileUp className="size-5 text-alpha-60" />
-                  <span className="text-caption-1 font-medium text-primary-900">{file ? file.name : 'Choose a .txt, .md, .csv or .pdf file'}</span>
-                  <span className="text-caption-2 text-alpha-50">Word files: save as PDF or paste the text</span>
-                  <input type="file" accept=".txt,.md,.csv,.json,.tsv,.pdf,text/plain,text/markdown,text/csv,application/pdf" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                  <span className="text-caption-1 font-medium text-primary-900">{file ? file.name : 'Choose a .txt, .md, .csv, .docx or .pdf file'}</span>
+                  <span className="text-caption-2 text-alpha-50">Image-only PDFs are read with OCR; old .doc files: save as .docx first</span>
+                  <input type="file" accept=".txt,.md,.csv,.json,.tsv,.pdf,.docx,text/plain,text/markdown,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
                 </label>
               )}
               {mode === 'article' && (
