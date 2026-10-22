@@ -14,12 +14,14 @@ import {
   Music2,
   AlertCircle,
   CheckCircle2,
+  CalendarPlus,
 } from 'lucide-react'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { AiMark } from '@/components/ui/ai-mark'
 import { Spinner } from '@/components/ui/spinner'
 import { LimeButton } from '@/components/onboarding/LimeButton'
 import { ExportMenu } from '@/components/calendar/ExportMenu'
+import { googleCalendarUrl } from '@/lib/calendar-export'
 import { cn } from '@/lib/utils'
 import {
   getCalendar,
@@ -104,6 +106,15 @@ function sameDay(a: Date, b: Date): boolean {
   )
 }
 
+function dayKey(d: Date): string {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+}
+
+function dateFromKey(key: string): Date {
+  const [y, m, d] = key.split('-').map(Number)
+  return new Date(y, m, d)
+}
+
 export default function CalendarPage() {
   const params = useParams()
   const projectId = params.id as string
@@ -122,6 +133,8 @@ export default function CalendarPage() {
     | { type: 'edit'; item: CalendarItem }
     | null
   >(null)
+  // Phones: tapping a day with posts filters the agenda under the grid to that day
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
   const monthGrid = useMemo(() => buildMonthGrid(viewYear, viewMonth), [viewYear, viewMonth])
   const monthStart = useMemo(() => new Date(viewYear, viewMonth, 1), [viewYear, viewMonth])
@@ -140,14 +153,24 @@ export default function CalendarPage() {
   const itemsByDay = useMemo(() => {
     const map = new Map<string, CalendarItem[]>()
     for (const item of items) {
-      const d = startOfDay(new Date(item.scheduled_at))
-      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+      const key = dayKey(startOfDay(new Date(item.scheduled_at)))
       const list = map.get(key) ?? []
       list.push(item)
       map.set(key, list)
     }
     return map
   }, [items])
+
+  // Agenda shown under the grid on phones: every post visible in the grid, in order, or one day when selected
+  const agendaItems = useMemo(() => {
+    const source = selectedDay ? itemsByDay.get(selectedDay) ?? [] : items
+    return [...source].sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
+  }, [items, itemsByDay, selectedDay])
+
+  const captionOf = useCallback(
+    (item: CalendarItem) => (item.draft_id ? drafts.find((d) => d.id === item.draft_id)?.caption_text ?? null : null),
+    [drafts],
+  )
 
   const loadData = useCallback(async () => {
     try {
@@ -224,6 +247,7 @@ export default function CalendarPage() {
   }
 
   const goPrevMonth = () => {
+    setSelectedDay(null)
     if (viewMonth === 0) {
       setViewMonth(11)
       setViewYear((y) => y - 1)
@@ -232,6 +256,7 @@ export default function CalendarPage() {
     }
   }
   const goNextMonth = () => {
+    setSelectedDay(null)
     if (viewMonth === 11) {
       setViewMonth(0)
       setViewYear((y) => y + 1)
@@ -240,6 +265,7 @@ export default function CalendarPage() {
     }
   }
   const goToday = () => {
+    setSelectedDay(null)
     setViewYear(today.getFullYear())
     setViewMonth(today.getMonth())
   }
@@ -411,7 +437,7 @@ export default function CalendarPage() {
             {DAY_LABELS.map((label) => (
               <div
                 key={label}
-                className="px-3 py-2.5 text-caption-2 font-semibold text-alpha-60 uppercase tracking-wide text-center"
+                className="px-1 py-2 text-caption-2 font-semibold text-alpha-60 uppercase tracking-wide text-center md:px-3 md:py-2.5"
               >
                 {label}
               </div>
@@ -442,23 +468,26 @@ export default function CalendarPage() {
               {monthGrid.map((date, idx) => {
                 const inMonth = date >= monthStart && date < monthEnd
                 const isToday = sameDay(date, today)
-                const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+                const key = dayKey(date)
                 const dayItems = itemsByDay.get(key) ?? []
+                const isSelected = selectedDay === key
                 return (
                   <button
                     key={idx}
                     type="button"
-                    onClick={() =>
-                      dayItems.length === 0 && setModal({ type: 'create', date })
-                    }
+                    onClick={() => {
+                      if (dayItems.length === 0) setModal({ type: 'create', date })
+                      else setSelectedDay((k) => (k === key ? null : key))
+                    }}
                     className={cn(
-                      'group relative text-left min-h-[110px] sm:min-h-[120px] border-r border-b border-alpha-10 p-2 transition-colors',
+                      'group relative text-left min-h-[56px] border-r border-b border-alpha-10 p-1 transition-colors md:min-h-[120px] md:p-2',
                       !inMonth && 'bg-alpha-5/30',
                       inMonth && dayItems.length === 0 && 'hover:bg-secondary-50/40 cursor-pointer',
-                      inMonth && dayItems.length > 0 && 'cursor-default',
+                      inMonth && dayItems.length > 0 && 'cursor-pointer md:cursor-default',
+                      isSelected && 'bg-secondary-50 md:bg-transparent',
                     )}
                   >
-                    <div className="flex items-center justify-between mb-1.5">
+                    <div className="mb-1 flex items-center justify-between md:mb-1.5">
                       <span
                         className={cn(
                           'inline-flex items-center justify-center text-caption-1 font-semibold',
@@ -471,12 +500,25 @@ export default function CalendarPage() {
                         {date.getDate()}
                       </span>
                       {inMonth && dayItems.length === 0 && (
-                        <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="hidden opacity-0 group-hover:opacity-100 transition-opacity md:inline">
                           <Plus className="size-3.5 text-alpha-40" />
                         </span>
                       )}
                     </div>
-                    <div className="space-y-1">
+                    {/* Phones: one dot per post; the agenda under the grid carries the titles */}
+                    <div className="flex flex-wrap gap-1 md:hidden">
+                      {dayItems.slice(0, 4).map((item) => (
+                        <span
+                          key={item.id}
+                          className={cn(
+                            'h-1.5 w-1.5 rounded-full',
+                            item.platform === 'instagram' ? 'bg-secondary-600' : 'bg-primary-900',
+                            item.status === 'cancelled' && 'opacity-30',
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <div className="hidden space-y-1 md:block">
                       {dayItems.slice(0, 3).map((item) => {
                         const style = PLATFORM_STYLES[item.platform]
                         const Icon = style.icon
@@ -520,6 +562,73 @@ export default function CalendarPage() {
             </div>
           )}
         </motion.div>
+
+        {/* Agenda, phones only: the month's posts as tappable rows, one day when a day is selected */}
+        {items.length > 0 && (
+          <div className="mt-4 md:hidden">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <h3 className="text-body-2 font-bold text-primary-900">
+                {selectedDay
+                  ? dateFromKey(selectedDay).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' })
+                  : 'Scheduled posts'}
+              </h3>
+              {selectedDay && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedDay(null)}
+                  className="text-caption-2 font-semibold text-primary-900 underline underline-offset-2"
+                >
+                  Whole month
+                </button>
+              )}
+            </div>
+            {agendaItems.length === 0 ? (
+              <p className="rounded-[14px] border border-alpha-10 bg-white px-4 py-5 text-center text-caption-1 text-alpha-60">
+                Nothing scheduled {selectedDay ? 'that day' : 'in this period'}.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {agendaItems.map((item) => {
+                  const d = new Date(item.scheduled_at)
+                  const style = PLATFORM_STYLES[item.platform]
+                  return (
+                    <li key={item.id} className="flex items-center gap-2 rounded-[14px] border border-alpha-10 bg-white p-3 shadow-card">
+                      <button
+                        type="button"
+                        onClick={() => setModal({ type: 'edit', item })}
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      >
+                        <div className="w-11 shrink-0 text-center">
+                          <p className="text-caption-2 uppercase text-alpha-50">{d.toLocaleDateString([], { weekday: 'short' })}</p>
+                          <p className="text-body-1 font-bold leading-none text-primary-900">{d.getDate()}</p>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className={cn('truncate text-caption-1 font-semibold text-primary-900', item.status === 'cancelled' && 'line-through opacity-60')}>
+                            {item.title}
+                          </p>
+                          <p className="text-caption-2 text-alpha-50">
+                            {d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {style.label}
+                            {item.status !== 'planned' ? ` · ${item.status}` : ''}
+                          </p>
+                        </div>
+                      </button>
+                      <a
+                        href={googleCalendarUrl(item, captionOf(item))}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label="Add to Google Calendar"
+                        title="Add to Google Calendar"
+                        className="shrink-0 rounded-[10px] border border-alpha-10 p-2 text-primary-900 transition-colors hover:border-primary-900"
+                      >
+                        <CalendarPlus className="size-4" />
+                      </a>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+        )}
 
         {/* Legend */}
         <motion.div
@@ -615,6 +724,7 @@ function CalendarItemModal({
   onDelete,
 }: CalendarItemModalProps) {
   const presetDraft = drafts.find((d) => d.id === initialDraftId) ?? null
+  const linkedDraft = item?.draft_id ? drafts.find((d) => d.id === item.draft_id) ?? null : null
   const presetTitle =
     item?.title ??
     presetDraft?.direction?.title_pillar ??
@@ -814,6 +924,34 @@ function CalendarItemModal({
                   )
                 })}
               </div>
+            </div>
+          )}
+
+          {mode === 'edit' && item && (
+            <div>
+              <label className="text-caption-1 font-medium text-primary-900 mb-1.5 block">
+                Reminder
+              </label>
+              <a
+                href={googleCalendarUrl(
+                  {
+                    title: title.trim() || item.title,
+                    scheduled_at: scheduledAt ? new Date(scheduledAt).toISOString() : item.scheduled_at,
+                    platform,
+                    notes: notes.trim() || null,
+                  },
+                  linkedDraft?.caption_text,
+                )}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-[12px] border border-alpha-10 bg-white px-3.5 py-2.5 text-caption-1 font-medium text-primary-900 transition-colors hover:border-primary-900"
+              >
+                <CalendarPlus className="size-4" />
+                Add to Google Calendar
+              </a>
+              <p className="mt-1.5 text-caption-2 text-alpha-50">
+                Opens Google Calendar with this post prefilled, caption included, so you get a reminder on your phone.
+              </p>
             </div>
           )}
 

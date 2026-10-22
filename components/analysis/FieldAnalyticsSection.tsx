@@ -96,6 +96,81 @@ function verdictText(data: FieldAnalytics): string | null {
   return s.charAt(0).toUpperCase() + s.slice(1) + '.'
 }
 
+/** Avatar with initials fallback, shared by the table row and the phone row. */
+function AccountAvatar({ account, isSelf }: { account: AccountAnalytics; isSelf?: boolean }) {
+  const [broken, setBroken] = useState(false)
+  const src = avatarSrc(account.avatar_url)
+  if (src && !broken) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={account.handle}
+        onError={() => setBroken(true)}
+        className={cn('w-9 h-9 rounded-full object-cover shrink-0', isSelf && 'ring-2 ring-secondary-600 ring-offset-1')}
+      />
+    )
+  }
+  return (
+    <div
+      className={cn(
+        'w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center text-caption-1 font-bold text-primary-900 shrink-0',
+        isSelf && 'ring-2 ring-secondary-600 ring-offset-1',
+      )}
+    >
+      {account.handle.slice(0, 2).toUpperCase()}
+    </div>
+  )
+}
+
+/** The benchmark on a phone: rank, account, engagement and the ratio to the field, nothing sideways. */
+function AccountRowCompact({
+  account,
+  rank,
+  fieldEngagement,
+  isSelf,
+}: {
+  account: AccountAnalytics
+  rank: number
+  fieldEngagement: number | null
+  isSelf?: boolean
+}) {
+  const er = account.engagement_rate
+  const ratio = er != null && fieldEngagement ? er / fieldEngagement : null
+  const meta = [
+    account.followers_count != null ? `${fmt(account.followers_count)} followers` : null,
+    account.posts_per_week != null ? `${account.posts_per_week}/wk` : null,
+    account.dominant_format ? `mostly ${account.dominant_format}` : null,
+  ].filter(Boolean)
+  return (
+    <li className={cn('flex items-center gap-3 py-2.5', isSelf && '-mx-2 rounded-[10px] bg-secondary-50 px-2')}>
+      <span className="w-5 shrink-0 text-caption-2 tabular-nums text-alpha-40">{rank}</span>
+      <AccountAvatar account={account} isSelf={isSelf} />
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate text-caption-1 font-semibold text-primary-900">{isSelf ? 'You' : `@${account.handle}`}</span>
+          {(isSelf || account.tracked) && (
+            <span className="shrink-0 rounded-full bg-secondary-300 border border-primary-900 px-1.5 py-px text-caption-2 font-semibold text-primary-900">
+              {isSelf ? 'You' : 'Tracked'}
+            </span>
+          )}
+        </div>
+        {meta.length > 0 && <p className="truncate text-caption-2 text-alpha-50">{meta.join(' · ')}</p>}
+      </div>
+      <div className="shrink-0 text-right">
+        <p className="text-caption-1 font-semibold tabular-nums text-primary-900">{pct(er)}</p>
+        {ratio != null ? (
+          <p className={cn('text-caption-2 font-semibold tabular-nums', ratio >= 1 ? 'text-success-700' : 'text-destructive-700')}>
+            {ratio.toFixed(1)}× field
+          </p>
+        ) : (
+          <p className="text-caption-2 text-alpha-40">—</p>
+        )}
+      </div>
+    </li>
+  )
+}
+
 function AccountRow({
   account,
   rank,
@@ -109,8 +184,6 @@ function AccountRow({
   fieldEngagement: number | null
   isSelf?: boolean
 }) {
-  const [broken, setBroken] = useState(false)
-  const src = avatarSrc(account.avatar_url)
   const er = account.engagement_rate
   const ratio = er != null && fieldEngagement ? er / fieldEngagement : null
   const meta = [
@@ -124,24 +197,7 @@ function AccountRow({
       <td className="py-3 pr-2 text-caption-1 text-alpha-40 tabular-nums">{rank}</td>
       <td className="py-3 pr-2 w-[270px]">
         <div className="flex items-center gap-3 min-w-0 max-w-[250px]">
-          {src && !broken ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={src}
-              alt={account.handle}
-              onError={() => setBroken(true)}
-              className={cn('w-9 h-9 rounded-full object-cover shrink-0', isSelf && 'ring-2 ring-secondary-600 ring-offset-1')}
-            />
-          ) : (
-            <div
-              className={cn(
-                'w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center text-caption-1 font-bold text-primary-900 shrink-0',
-                isSelf && 'ring-2 ring-secondary-600 ring-offset-1',
-              )}
-            >
-              {account.handle.slice(0, 2).toUpperCase()}
-            </div>
-          )}
+          <AccountAvatar account={account} isSelf={isSelf} />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="text-caption-1 font-semibold text-primary-900 truncate">
@@ -365,7 +421,19 @@ export function FieldAnalyticsSection({ data }: { data: FieldAnalytics }) {
               Your own account is not in the table yet: refresh it from your profile and it will appear at the top.
             </p>
           )}
-          <div className="overflow-x-auto">
+          {/* Phones: one compact row per account instead of the wide table */}
+          <ul className="divide-y divide-alpha-10 md:hidden">
+            {rows.map(({ account, isSelf }, i) => (
+              <AccountRowCompact
+                key={isSelf ? 'self' : (account.id ?? account.handle)}
+                account={account}
+                rank={i + 1}
+                fieldEngagement={data.field.avg_engagement_rate}
+                isSelf={isSelf}
+              />
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[680px] text-left">
               <thead>
                 <tr className="border-b border-alpha-10 text-caption-2 text-alpha-50 uppercase tracking-wide whitespace-nowrap">

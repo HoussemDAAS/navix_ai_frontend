@@ -54,6 +54,29 @@ export function buildIcs(items: CalendarItem[]): string {
   ].join('\r\n')
 }
 
+/**
+ * Prefilled "create event" link for Google Calendar. Opens in a new tab; no account linking,
+ * no API: the user confirms the event in Google and gets Google's own reminders.
+ */
+export function googleCalendarUrl(
+  item: Pick<CalendarItem, 'title' | 'scheduled_at' | 'platform' | 'notes'>,
+  details?: string | null,
+): string {
+  const start = new Date(item.scheduled_at)
+  const end = new Date(start.getTime() + 60 * 60 * 1000)
+  const platform = PLATFORM_LABELS[item.platform] ?? item.platform
+  const body = [details?.trim().slice(0, 1500), item.notes?.trim(), 'Scheduled with Navix AI']
+    .filter(Boolean)
+    .join('\n\n')
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `[${platform}] ${item.title}`,
+    dates: `${toIcsUtc(start.toISOString())}/${toIcsUtc(end.toISOString())}`,
+    details: body,
+  })
+  return `https://calendar.google.com/calendar/render?${params.toString()}`
+}
+
 function csvCell(value: string): string {
   return `"${value.replace(/"/g, '""')}"`
 }

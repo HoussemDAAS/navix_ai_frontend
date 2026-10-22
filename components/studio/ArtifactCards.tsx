@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import { CalendarCheck, CalendarPlus, Check, Copy, Lightbulb, PenLine, ThumbsDown, Wand2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { googleCalendarUrl } from '@/lib/calendar-export'
 import {
   scheduleDraft,
   submitDraftFeedback,
   updateDraft,
+  type CalendarItem,
   type DraftStatus,
   type StudioDraft,
   type StudioIdea,
@@ -93,7 +95,7 @@ export function DraftCard({ draft, projectId, onRevise, compact = false, disable
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState(false)
   const [scriptOpen, setScriptOpen] = useState(false)
-  const [scheduled, setScheduled] = useState<{ when: string; reason: string } | null>(null)
+  const [scheduled, setScheduled] = useState<{ when: string; reason: string; item: CalendarItem } | null>(null)
   const [scheduling, setScheduling] = useState(false)
 
   async function schedule() {
@@ -105,6 +107,7 @@ export function DraftCard({ draft, projectId, onRevise, compact = false, disable
       setScheduled({
         when: new Date(res.data.item.scheduled_at).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
         reason: res.data.reason,
+        item: res.data.item,
       })
     } catch {
       // the Library offers the same action with a visible error
@@ -228,12 +231,23 @@ export function DraftCard({ draft, projectId, onRevise, compact = false, disable
       )}
 
       {scheduled && (
-        <p className="mt-3 inline-flex items-start gap-1.5 rounded-[10px] border border-success-300 bg-success-50 px-3 py-2 text-caption-2 text-success-700">
-          <CalendarCheck className="mt-0.5 size-3.5 shrink-0" />
-          <span>
-            <span className="font-semibold">Scheduled · {scheduled.when}.</span> {scheduled.reason}
-          </span>
-        </p>
+        <div className="mt-3 rounded-[10px] border border-success-300 bg-success-50 px-3 py-2 text-caption-2 text-success-700">
+          <p className="flex items-start gap-1.5">
+            <CalendarCheck className="mt-0.5 size-3.5 shrink-0" />
+            <span>
+              <span className="font-semibold">Scheduled · {scheduled.when}.</span> {scheduled.reason}
+            </span>
+          </p>
+          <a
+            href={googleCalendarUrl(scheduled.item, draft.caption_text)}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1.5 inline-flex items-center gap-1.5 pl-5 font-semibold text-primary-900 underline underline-offset-2"
+          >
+            <CalendarPlus className="size-3.5" />
+            Add to Google Calendar
+          </a>
+        </div>
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
