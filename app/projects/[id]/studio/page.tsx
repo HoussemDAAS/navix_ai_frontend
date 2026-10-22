@@ -7,6 +7,7 @@ import {
   FileText,
   Film,
   Image as ImageIcon,
+  LayoutGrid,
   Link2,
   Music,
   Paperclip,
@@ -149,6 +150,8 @@ function StudioContent() {
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<'ideas' | 'drafts' | 'references' | 'memory'>('ideas')
   const [dragging, setDragging] = useState(false)
+  // Phones and tablets: the ideas/drafts/references/memory panel opens as a bottom sheet
+  const [canvasOpen, setCanvasOpen] = useState(false)
 
   const abortRef = useRef<AbortController | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -410,12 +413,14 @@ function StudioContent() {
 
   const draftIdea = useCallback(
     (idea: StudioIdea) => {
+      setCanvasOpen(false)
       void send(`Write a draft for the idea "${idea.title_pillar}" as a ${idea.format}.`)
     },
     [send],
   )
 
   const reviseDraft = useCallback((draft: StudioDraft) => {
+    setCanvasOpen(false)
     setInput(`Revise "${draft.idea_title}" v${draft.version ?? 1}: `)
     composerRef.current?.focus()
   }, [])
@@ -453,10 +458,63 @@ function StudioContent() {
     )
   }
 
+  const canvasCount = ideas.length + drafts.length
+
+  /* The session canvas: a sticky side panel on desktop, a bottom sheet on phones and tablets */
+  const canvas = (
+    <>
+      <div className="mb-3 flex items-center gap-1 rounded-[10px] bg-alpha-5 p-1">
+        {(['ideas', 'drafts', 'references', 'memory'] as const).map((t) => {
+          const count =
+            t === 'ideas' ? ideas.length : t === 'drafts' ? drafts.length : t === 'references' ? references.length : null
+          return (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTab(t)}
+              className={cn(
+                'flex-1 rounded-[8px] px-1.5 py-1.5 text-caption-2 font-semibold capitalize transition-colors sm:text-caption-1',
+                tab === t ? 'bg-white text-primary-900 shadow-card' : 'text-alpha-60 hover:text-primary-900',
+              )}
+            >
+              {t}
+              {count !== null && <span className="ml-1 text-alpha-40">{count}</span>}
+            </button>
+          )
+        })}
+      </div>
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1 lg:max-h-[calc(100vh-18rem)]">
+        {tab === 'ideas' &&
+          (ideas.length === 0 ? (
+            <p className="px-1 py-6 text-center text-caption-1 text-alpha-60">Ideas Navix proposes in this session collect here.</p>
+          ) : (
+            ideas.map((idea, i) => <IdeaCard key={idea.id ?? i} idea={idea} onDraft={draftIdea} compact disabled={busy} />)
+          ))}
+        {tab === 'drafts' &&
+          (drafts.length === 0 ? (
+            <p className="px-1 py-6 text-center text-caption-1 text-alpha-60">Drafts appear here and in your Drafts library.</p>
+          ) : (
+            drafts.map((draft, i) => (
+              <DraftCard key={draft.id ?? i} draft={draft} projectId={projectId} onRevise={reviseDraft} compact disabled={busy} />
+            ))
+          ))}
+        {tab === 'references' &&
+          (references.length === 0 ? (
+            <p className="px-1 py-6 text-center text-caption-1 text-alpha-60">
+              Photos, PDFs, scripts and videos you attach are read once and stay available to Navix here.
+            </p>
+          ) : (
+            references.map((r) => <ReferenceCard key={r.id} reference={r} />)
+          ))}
+        {tab === 'memory' && <MemoryPanel projectId={projectId} />}
+      </div>
+    </>
+  )
+
   return (
-    <div className="px-5 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-8 max-w-[1240px]">
-      {/* Header */}
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex h-[calc(100dvh-3.5rem)] flex-col lg:block lg:h-auto lg:max-w-[1240px] lg:px-12 lg:py-8">
+      {/* Header, desktop */}
+      <div className="mb-5 hidden items-center justify-between gap-3 lg:flex">
         <div>
           <h1 className="text-h5 font-bold text-primary-900 sm:text-h4">Studio</h1>
           <p className="mt-1 text-body-2 text-alpha-60">
@@ -494,7 +552,54 @@ function StudioContent() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      {/* Header, phones and tablets: one compact row, nothing wider than the screen */}
+      <div className="flex shrink-0 items-center gap-2 border-b border-alpha-10 bg-white px-3 py-2 lg:hidden">
+        <h1 className="shrink-0 text-body-1 font-bold text-primary-900">Studio</h1>
+        {sessions.length > 1 && session ? (
+          <div className="relative min-w-0 flex-1">
+            <select
+              value={session.id}
+              onChange={(e) => void openSession(e.target.value)}
+              disabled={busy}
+              className="w-full appearance-none rounded-[10px] border border-alpha-10 bg-white py-1.5 pl-2.5 pr-7 text-caption-2 font-medium text-primary-900 outline-none focus:border-primary-900"
+              aria-label="Previous sessions"
+            >
+              {sessions.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {sessionLabel(s)}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 text-alpha-40" />
+          </div>
+        ) : (
+          <div className="flex-1" />
+        )}
+        <button
+          type="button"
+          onClick={() => void newSession()}
+          disabled={busy}
+          aria-label="New session"
+          className="inline-flex size-9 shrink-0 items-center justify-center rounded-[10px] border border-alpha-10 bg-white text-primary-900 transition-colors hover:border-primary-900 disabled:opacity-50"
+        >
+          <Plus className="size-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setCanvasOpen(true)}
+          aria-label="Open the ideas, drafts, references and memory of this session"
+          className="relative inline-flex size-9 shrink-0 items-center justify-center rounded-[10px] border border-alpha-10 bg-white text-primary-900 transition-colors hover:border-primary-900"
+        >
+          <LayoutGrid className="size-4" />
+          {canvasCount > 0 && (
+            <span className="absolute -right-1.5 -top-1.5 inline-flex min-w-5 items-center justify-center rounded-full border border-primary-900 bg-secondary-300 px-1 text-caption-2 font-bold leading-4 text-primary-900">
+              {canvasCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-6">
         {/* Conversation */}
         <div
           onDragOver={(e) => {
@@ -504,11 +609,11 @@ function StudioContent() {
           onDragLeave={() => setDragging(false)}
           onDrop={handleDrop}
           className={cn(
-            'flex h-[calc(100vh-14rem)] min-h-[520px] flex-col rounded-[20px] border bg-white shadow-card transition-colors',
-            dragging ? 'border-primary-900 bg-secondary-50' : 'border-alpha-10',
+            'flex min-h-0 flex-1 flex-col bg-white transition-colors lg:h-[calc(100vh-14rem)] lg:min-h-[520px] lg:rounded-[20px] lg:border lg:shadow-card',
+            dragging ? 'bg-secondary-50 lg:border-primary-900' : 'lg:border-alpha-10',
           )}
         >
-          <div className="flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-6">
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
             {messages.map((m, i) => (
               <MessageRow
                 key={m.id}
@@ -547,7 +652,7 @@ function StudioContent() {
             )}
 
             {showStarters && (
-              <div className="flex flex-wrap gap-2 pl-10">
+              <div className="flex flex-wrap gap-2 sm:pl-10">
                 {STARTERS.map((s) => (
                   <button
                     key={s}
@@ -569,8 +674,8 @@ function StudioContent() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Composer */}
-          <div className="border-t border-alpha-10 p-3 sm:p-4">
+          {/* Composer: pinned to the bottom of the screen on phones, above the home indicator */}
+          <div className="shrink-0 border-t border-alpha-10 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4">
             {attachments.length > 0 && (
               <div className="mb-2 flex flex-wrap gap-2">
                 {attachments.map((a) => {
@@ -616,8 +721,8 @@ function StudioContent() {
               placeholder="Tell Navix what you want to make. Paste a reel or TikTok link, or attach a photo, PDF, script or video…"
               className="w-full resize-none rounded-[12px] border border-alpha-10 bg-alpha-5/50 px-4 py-3 text-body-2 text-primary-900 outline-none transition-colors placeholder:text-alpha-30 focus:border-primary-900 focus:bg-white"
             />
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-2">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -633,11 +738,12 @@ function StudioContent() {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={busy || !session}
-                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-alpha-10 px-3 py-2 text-caption-1 font-medium text-alpha-60 transition-colors hover:border-primary-900 hover:text-primary-900 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-alpha-10 px-2.5 py-2 text-caption-1 font-medium text-alpha-60 transition-colors hover:border-primary-900 hover:text-primary-900 disabled:opacity-50 sm:px-3"
                   title="Attach a photo, PDF, text or video as an example"
+                  aria-label="Attach a file"
                 >
                   <Paperclip className="size-3.5" />
-                  Attach
+                  <span className="hidden sm:inline">Attach</span>
                 </button>
                 <button
                   type="button"
@@ -647,18 +753,20 @@ function StudioContent() {
                     else if (url) setError('That does not look like an Instagram post or TikTok video link.')
                   }}
                   disabled={busy || !session}
-                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-alpha-10 px-3 py-2 text-caption-1 font-medium text-alpha-60 transition-colors hover:border-primary-900 hover:text-primary-900 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-alpha-10 px-2.5 py-2 text-caption-1 font-medium text-alpha-60 transition-colors hover:border-primary-900 hover:text-primary-900 disabled:opacity-50 sm:px-3"
                   title="Add an Instagram or TikTok post by link"
+                  aria-label="Add a post by link"
                 >
                   <Link2 className="size-3.5" />
-                  Link
+                  <span className="hidden sm:inline">Link</span>
                 </button>
-                <label className="flex items-center gap-2 text-caption-2 text-alpha-60">
-                  Content in
+                <label className="flex min-w-0 items-center gap-2 text-caption-2 text-alpha-60">
+                  <span className="hidden sm:inline">Content in</span>
                   <select
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
-                    className="rounded-[8px] border border-alpha-10 bg-white px-2 py-1 text-caption-2 font-medium text-primary-900 outline-none focus:border-primary-900"
+                    aria-label="Content language"
+                    className="min-w-0 max-w-[8.5rem] rounded-[8px] border border-alpha-10 bg-white px-2 py-1.5 text-caption-2 font-medium text-primary-900 outline-none focus:border-primary-900 sm:max-w-none sm:py-1"
                   >
                     {LANGUAGES.map((l) => (
                       <option key={l} value={l}>
@@ -668,81 +776,60 @@ function StudioContent() {
                   </select>
                 </label>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-2">
                 {busy && (
                   <button
                     type="button"
                     onClick={stop}
-                    className="inline-flex items-center gap-1.5 rounded-[10px] border border-alpha-10 px-3 py-2 text-caption-1 font-medium text-alpha-60 hover:border-primary-900 hover:text-primary-900"
+                    aria-label="Stop"
+                    className="inline-flex items-center gap-1.5 rounded-[10px] border border-alpha-10 px-2.5 py-2 text-caption-1 font-medium text-alpha-60 hover:border-primary-900 hover:text-primary-900 sm:px-3"
                   >
                     <Square className="size-3.5" />
-                    Stop
+                    <span className="hidden sm:inline">Stop</span>
                   </button>
                 )}
                 <button
                   type="button"
                   onClick={() => void send(input)}
                   disabled={!canSend}
+                  aria-label="Send"
                   title={uploading ? 'Waiting for your attachments to be read' : undefined}
-                  className="inline-flex items-center gap-2 rounded-[12px] bg-secondary-300 px-4 py-2 text-caption-1 font-semibold text-primary-900 border border-primary-900 shadow-signature transition-all duration-200 hover:bg-secondary-400 hover:shadow-[0px_3px_0px_0px_#191a23] active:shadow-none active:translate-y-[2px] disabled:opacity-50 disabled:pointer-events-none"
+                  className="inline-flex items-center gap-2 rounded-[12px] bg-secondary-300 px-3 py-2 text-caption-1 font-semibold text-primary-900 border border-primary-900 shadow-signature transition-all duration-200 hover:bg-secondary-400 hover:shadow-[0px_3px_0px_0px_#191a23] active:shadow-none active:translate-y-[2px] disabled:opacity-50 disabled:pointer-events-none sm:px-4"
                 >
                   <Send className="size-3.5" />
-                  Send
+                  <span className="hidden sm:inline">Send</span>
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Canvas */}
-        <aside className="self-start rounded-[20px] border border-alpha-10 bg-white p-4 shadow-card lg:sticky lg:top-6">
-          <div className="mb-3 flex items-center gap-1 rounded-[10px] bg-alpha-5 p-1">
-            {(['ideas', 'drafts', 'references', 'memory'] as const).map((t) => {
-              const count =
-                t === 'ideas' ? ideas.length : t === 'drafts' ? drafts.length : t === 'references' ? references.length : null
-              return (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setTab(t)}
-                  className={cn(
-                    'flex-1 rounded-[8px] px-1.5 py-1.5 text-caption-2 font-semibold capitalize transition-colors sm:text-caption-1',
-                    tab === t ? 'bg-white text-primary-900 shadow-card' : 'text-alpha-60 hover:text-primary-900',
-                  )}
-                >
-                  {t}
-                  {count !== null && <span className="ml-1 text-alpha-40">{count}</span>}
-                </button>
-              )
-            })}
-          </div>
-          <div className="max-h-[calc(100vh-18rem)] space-y-3 overflow-y-auto pr-1">
-            {tab === 'ideas' &&
-              (ideas.length === 0 ? (
-                <p className="px-1 py-6 text-center text-caption-1 text-alpha-60">Ideas Navix proposes in this session collect here.</p>
-              ) : (
-                ideas.map((idea, i) => <IdeaCard key={idea.id ?? i} idea={idea} onDraft={draftIdea} compact disabled={busy} />)
-              ))}
-            {tab === 'drafts' &&
-              (drafts.length === 0 ? (
-                <p className="px-1 py-6 text-center text-caption-1 text-alpha-60">Drafts appear here and in your Drafts library.</p>
-              ) : (
-                drafts.map((draft, i) => (
-                  <DraftCard key={draft.id ?? i} draft={draft} projectId={projectId} onRevise={reviseDraft} compact disabled={busy} />
-                ))
-              ))}
-            {tab === 'references' &&
-              (references.length === 0 ? (
-                <p className="px-1 py-6 text-center text-caption-1 text-alpha-60">
-                  Photos, PDFs, scripts and videos you attach are read once and stay available to Navix here.
-                </p>
-              ) : (
-                references.map((r) => <ReferenceCard key={r.id} reference={r} />)
-              ))}
-            {tab === 'memory' && <MemoryPanel projectId={projectId} />}
-          </div>
+        {/* Canvas, desktop: a sticky panel next to the conversation */}
+        <aside className="hidden self-start rounded-[20px] border border-alpha-10 bg-white p-4 shadow-card lg:sticky lg:top-6 lg:block">
+          {canvas}
         </aside>
       </div>
+
+      {/* Canvas, phones and tablets: a bottom sheet over the conversation */}
+      {canvasOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="This session">
+          <div className="absolute inset-0 bg-primary-900/40" onClick={() => setCanvasOpen(false)} />
+          <div className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col rounded-t-[20px] bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-dropdown">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-body-2 font-semibold text-primary-900">This session</p>
+              <button
+                type="button"
+                onClick={() => setCanvasOpen(false)}
+                aria-label="Close"
+                className="rounded-[8px] p-1.5 text-alpha-60 transition-colors hover:bg-alpha-5"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            {canvas}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

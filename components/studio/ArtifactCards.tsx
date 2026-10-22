@@ -38,7 +38,8 @@ interface IdeaCardProps {
 export function IdeaCard({ idea, onDraft, compact = false, disabled = false }: IdeaCardProps) {
   return (
     <div className="rounded-[14px] border border-alpha-10 bg-white p-4 shadow-card">
-      <div className="flex items-start justify-between gap-3">
+      {/* In the conversation the action sits under the text on phones; the compact panel card keeps it beside */}
+      <div className={cn('flex gap-3', compact ? 'items-start justify-between' : 'flex-col sm:flex-row sm:items-start sm:justify-between')}>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className={chip}>
@@ -50,7 +51,12 @@ export function IdeaCard({ idea, onDraft, compact = false, disabled = false }: I
           <p className="mt-2 text-body-2 font-semibold text-primary-900">{idea.title_pillar}</p>
           {!compact && <p className="mt-1 text-caption-1 text-primary-900/80">{idea.angle}</p>}
         </div>
-        <button type="button" onClick={() => onDraft(idea)} disabled={disabled} className={cn(lime, 'shrink-0')}>
+        <button
+          type="button"
+          onClick={() => onDraft(idea)}
+          disabled={disabled}
+          className={cn(lime, 'shrink-0', !compact && 'w-full sm:w-auto')}
+        >
           <Wand2 className="size-3.5" />
           Draft this
         </button>
