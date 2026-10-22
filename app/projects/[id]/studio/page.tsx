@@ -718,7 +718,7 @@ function StudioContent() {
               onKeyDown={handleKey}
               onPaste={handlePaste}
               rows={2}
-              placeholder="Tell Navix what you want to make. Paste a reel or TikTok link, or attach a photo, PDF, script or video…"
+              placeholder="Tell Navix what you want to make, or paste a reel or TikTok link…"
               className="w-full resize-none rounded-[12px] border border-alpha-10 bg-alpha-5/50 px-4 py-3 text-body-2 text-primary-900 outline-none transition-colors placeholder:text-alpha-30 focus:border-primary-900 focus:bg-white"
             />
             <div className="mt-2 flex items-center justify-between gap-2">
