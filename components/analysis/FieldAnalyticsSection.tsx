@@ -138,6 +138,7 @@ function AccountRowCompact({
   const er = account.engagement_rate
   const ratio = er != null && fieldEngagement ? er / fieldEngagement : null
   const meta = [
+    isSelf && account.handle !== 'you' ? `@${account.handle}` : null,
     account.followers_count != null ? `${fmt(account.followers_count)} followers` : null,
     account.posts_per_week != null ? `${account.posts_per_week}/wk` : null,
     account.dominant_format ? `mostly ${account.dominant_format}` : null,
@@ -149,9 +150,9 @@ function AccountRowCompact({
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-1.5">
           <span className="truncate text-caption-1 font-semibold text-primary-900">{isSelf ? 'You' : `@${account.handle}`}</span>
-          {(isSelf || account.tracked) && (
+          {!isSelf && account.tracked && (
             <span className="shrink-0 rounded-full bg-secondary-300 border border-primary-900 px-1.5 py-px text-caption-2 font-semibold text-primary-900">
-              {isSelf ? 'You' : 'Tracked'}
+              Tracked
             </span>
           )}
         </div>
