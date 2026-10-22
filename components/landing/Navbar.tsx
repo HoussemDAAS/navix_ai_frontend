@@ -9,7 +9,6 @@ import { supabase } from "@/lib/supabase/client"
 const navLinks = [
   { label: "About us", href: "#about" },
   { label: "Services", href: "#services" },
-  { label: "Pricing", href: "#pricing" },
 ]
 
 const limeCta =

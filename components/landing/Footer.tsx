@@ -5,7 +5,6 @@ import { Linkedin, Facebook, Twitter } from "lucide-react"
 const navLinks = [
   { label: "About us", href: "#about" },
   { label: "Services", href: "#services" },
-  { label: "Pricing", href: "#pricing" },
 ]
 
 export function Footer({ className }: { className?: string }) {
