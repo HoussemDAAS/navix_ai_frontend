@@ -955,6 +955,10 @@ export interface SelfProfileData {
   insight_status: InsightStatus
   insight_error: string | null
   insight_generated_at: string | null
+  /** Last read of the account: queued | running | completed | failed */
+  scrape_status?: string | null
+  /** Set when the last read failed, with the reason */
+  scrape_error?: string | null
 }
 
 /** Manual add: paste a profile link or @handle → enriched, tracked competitor */

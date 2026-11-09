@@ -134,7 +134,7 @@ export default function SelfProfilePage() {
               handle={data.stats.handle}
               fullName={data.profile.entity_name ?? data.profile.full_name}
               platform={data.stats.platform}
-              avatarUrl={data.stats.avatar_url ?? data.profile.avatar_url}
+              avatarUrl={data.stats.avatar_url ?? data.profile.avatar_url ?? data.profile.entity_logo_url}
               biography={data.profile.biography}
               tracked
               freshness={
@@ -146,6 +146,13 @@ export default function SelfProfilePage() {
                 />
               }
             />
+
+            {data.scrape_error && (
+              <div className="rounded-[14px] border border-alpha-10 bg-alpha-5 px-4 py-3 text-caption-1 text-destructive-600">
+                <span className="font-semibold">The last read of this account failed.</span> {data.scrape_error} Use
+                Refresh above to try again.
+              </div>
+            )}
 
             <ProfileStats stats={buildProfileStats(data.stats)} />
 

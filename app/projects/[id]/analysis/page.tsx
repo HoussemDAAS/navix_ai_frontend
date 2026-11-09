@@ -34,6 +34,17 @@ type AnalysisResult = AnalysisBrief
 
 type PageState = 'loading' | 'empty' | 'running' | 'complete' | 'error'
 
+/** A brief the Studio created before any market analysis has no lists yet: the page treats it as no analysis */
+function normalizeBrief(brief: AnalysisResult | null | undefined): AnalysisResult | null {
+  if (!brief || !Array.isArray(brief.dominant_formats) || brief.dominant_formats.length === 0) return null
+  return {
+    ...brief,
+    key_takeaways: brief.key_takeaways ?? [],
+    winning_hooks: brief.winning_hooks ?? [],
+    whitespace_opportunities: brief.whitespace_opportunities ?? [],
+  }
+}
+
 export default function AnalysisPage() {
   const params = useParams()
   const projectId = params.id as string
@@ -56,8 +67,9 @@ export default function AnalysisPage() {
         ])
         setCompetitors(compRes.data || [])
         setFieldData(fieldRes.data ?? null)
-        if (analysisRes.data) {
-          setAnalysis(analysisRes.data)
+        const brief = normalizeBrief(analysisRes.data)
+        if (brief) {
+          setAnalysis(brief)
           setPageState('complete')
         } else {
           setPageState('empty')
@@ -80,7 +92,7 @@ export default function AnalysisPage() {
           clearInterval(interval)
           // Prefer the persisted brief; the job output is the same result
           const fresh = await getAnalysis(projectId).catch(() => ({ data: null }))
-          const result = fresh.data ?? status.output
+          const result = normalizeBrief(fresh.data ?? status.output)
           if (result) {
             setAnalysis(result)
             setPageState('complete')
